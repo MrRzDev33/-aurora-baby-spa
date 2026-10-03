@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Environment variables
+// Environment variables provided at build-time or runtime
 const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
@@ -8,12 +8,26 @@ const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const STORAGE_SUPABASE_URL = 'aurora_supabase_url';
 export const STORAGE_SUPABASE_KEY = 'aurora_supabase_anon_key';
 
+/**
+ * Normalizes Supabase Project URL:
+ * - Trims whitespaces
+ * - Strips trailing slashes
+ * - Strips trailing /rest/v1 or /auth/v1 in case user copied the REST API URL from Supabase dashboard
+ */
+export function cleanSupabaseUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim();
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/(rest|auth|storage)\/v\d+\/?$/i, '');
+  url = url.replace(/\/+$/, '');
+  return url;
+}
+
 export function getSupabaseCredentials(): { url: string; anonKey: string; isConfigured: boolean } {
-  let url = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_URL) : null) || envUrl || '';
+  let rawUrl = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_URL) : null) || envUrl || '';
   let anonKey = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_KEY) : null) || envAnonKey || '';
 
-  // Clean trailing slashes
-  url = url.trim().replace(/\/+$/, '');
+  const url = cleanSupabaseUrl(rawUrl);
   anonKey = anonKey.trim();
 
   // Valid if starts with https://
@@ -66,8 +80,9 @@ export function getSupabaseClient(): SupabaseClient | null {
 
 export function saveSupabaseCredentials(url: string, anonKey: string): void {
   if (typeof window !== 'undefined') {
-    if (url.trim()) {
-      localStorage.setItem(STORAGE_SUPABASE_URL, url.trim());
+    const cleaned = cleanSupabaseUrl(url);
+    if (cleaned) {
+      localStorage.setItem(STORAGE_SUPABASE_URL, cleaned);
     } else {
       localStorage.removeItem(STORAGE_SUPABASE_URL);
     }
