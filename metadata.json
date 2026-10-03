@@ -1,0 +1,6 @@
+{
+  "name": "Aurora Mom & Baby Spa – Reservation Management",
+  "description": "Sistem manajemen reservasi modern dan elegan untuk Aurora Mom & Baby Spa. Kalender reservasi interaktif, pencatatan cepat, dan pengelolaan jadwal perawatan ibu dan bayi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

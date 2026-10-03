@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #4eafde;
+  --color-brand-hover: #3ea0cf;
+  --color-brand-light: #e8f5fb;
+  --color-brand-surface: #f4fafc;
+  --color-brand-text: #223749;
+  --color-brand-muted: #647b8e;
+  --color-brand-border: #d8eaf5;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #ffffff;
+    color: #223749;
+    font-family: var(--font-sans);
+  }
+}
