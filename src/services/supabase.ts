@@ -1,8 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Environment variables provided at build-time or runtime
-const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) as string | undefined;
+const envAnonKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) as string | undefined;
 
 // LocalStorage keys for optional runtime configuration by admin
 export const STORAGE_SUPABASE_URL = 'aurora_supabase_url';
@@ -23,12 +23,24 @@ export function cleanSupabaseUrl(rawUrl: string): string {
   return url;
 }
 
+// Default Supabase project configuration for Aurora Mom & Baby Spa
+export const DEFAULT_SUPABASE_URL = 'https://gnwohbzwpkitupvncrjf.supabase.co';
+export const DEFAULT_SUPABASE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud29oYnp3cGtpdHVwdm5jcmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5OTYxNjMsImV4cCI6MjEwNjU3MjE2M30.myg_jmiWxQbXyDCa0BK2M2Ak8YrPBLBHiIDJcIYwoI0';
+
 export function getSupabaseCredentials(): { url: string; anonKey: string; isConfigured: boolean } {
-  let rawUrl = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_URL) : null) || envUrl || '';
-  let anonKey = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_KEY) : null) || envAnonKey || '';
+  let rawUrl =
+    (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_URL) : null) ||
+    envUrl ||
+    DEFAULT_SUPABASE_URL;
+
+  let anonKey =
+    (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_SUPABASE_KEY) : null) ||
+    envAnonKey ||
+    DEFAULT_SUPABASE_KEY;
 
   const url = cleanSupabaseUrl(rawUrl);
-  anonKey = anonKey.trim();
+  anonKey = (anonKey || '').trim();
 
   // Valid if starts with https://
   const isConfigured = Boolean(
