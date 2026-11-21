@@ -188,9 +188,12 @@ CREATE TABLE IF NOT EXISTS public.reservations (
     reservation_time TIME NOT NULL,
     treatment_id UUID NOT NULL REFERENCES public.treatments(id) ON DELETE RESTRICT,
     status TEXT NOT NULL DEFAULT 'Pending',
+    notes TEXT DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS idx_reservations_date ON public.reservations (reservation_date);
 CREATE INDEX IF NOT EXISTS idx_reservations_datetime ON public.reservations (reservation_date, reservation_time);

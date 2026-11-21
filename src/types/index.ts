@@ -30,6 +30,7 @@ export interface Reservation {
   reservation_time: string; // HH:mm (24-hour)
   treatment_id: string;
   status: ReservationStatus;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 }

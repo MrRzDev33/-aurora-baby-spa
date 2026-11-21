@@ -3,6 +3,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  StickyNote,
   Trash2,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
@@ -10,6 +11,7 @@ import {
   ReservationWithTreatment,
   Treatment,
 } from '../../types';
+import { getCategoryTheme } from '../../utils/categoryTheme';
 import {
   formatShortDate,
   getCurrentDateString,
@@ -26,6 +28,7 @@ interface ReservationListViewProps {
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
   onEditReservation: (reservation: ReservationWithTreatment) => void;
   onDeleteReservation: (reservation: ReservationWithTreatment) => void;
+  onOpenNote: (reservation: ReservationWithTreatment) => void;
 }
 
 export const ReservationListView: React.FC<ReservationListViewProps> = ({
@@ -35,6 +38,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   onSelectReservation,
   onEditReservation,
   onDeleteReservation,
+  onOpenNote,
 }) => {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +47,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [treatmentFilter, setTreatmentFilter] = useState<string>('all');
-  const [sortOrder, setSortOrder] = useState<'nearest' | 'newest_first' | 'oldest_first'>('nearest');
+  const [sortOrder, setSortOrder] = useState<'recently_added' | 'nearest' | 'newest_first' | 'oldest_first'>('recently_added');
 
   const todayStr = getCurrentDateString();
 
@@ -113,10 +117,35 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
     treatmentFilter,
   ]);
 
+  // Period counts for quick classification tabs
+  const periodCounts = useMemo(() => {
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    for (const r of reservations) {
+      if (isToday(r.reservation_date)) todayCount++;
+      if (isInCurrentWeek(r.reservation_date)) weekCount++;
+      if (isInCurrentMonth(r.reservation_date)) monthCount++;
+    }
+    return {
+      all: reservations.length,
+      today: todayCount,
+      this_week: weekCount,
+      this_month: monthCount,
+    };
+  }, [reservations]);
+
   // Sorting
   const sortedReservations = useMemo(() => {
     const list = [...filteredReservations];
-    if (sortOrder === 'nearest') {
+    if (sortOrder === 'recently_added') {
+      list.sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime() || 0;
+        const timeB = new Date(b.created_at).getTime() || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return b.reservation_code.localeCompare(a.reservation_code);
+      });
+    } else if (sortOrder === 'nearest') {
       list.sort((a, b) => {
         if (a.reservation_date !== b.reservation_date) {
           return a.reservation_date.localeCompare(b.reservation_date);
@@ -148,7 +177,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
     setCategoryFilter('all');
     setStatusFilter('all');
     setTreatmentFilter('all');
-    setSortOrder('nearest');
+    setSortOrder('recently_added');
   };
 
   const hasActiveFilters =
@@ -178,6 +207,43 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
           <Plus className="w-4 h-4" />
           <span>+ New Reservation</span>
         </button>
+      </div>
+
+      {/* Quick Period Classification Tabs: Semua | Hari Ini | Minggu Ini | Bulan Ini */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        {(
+          [
+            { key: 'all', label: 'Semua', count: periodCounts.all },
+            { key: 'today', label: 'Hari Ini', count: periodCounts.today },
+            { key: 'this_week', label: 'Minggu Ini', count: periodCounts.this_week },
+            { key: 'this_month', label: 'Bulan Ini', count: periodCounts.this_month },
+          ] as const
+        ).map((tab) => {
+          const isActive = dateFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setDateFilter(tab.key)}
+              className={`min-h-[40px] shrink-0 px-4 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
+                isActive
+                  ? 'bg-[#4eafde] text-white border-[#4eafde] shadow-xs'
+                  : 'bg-white text-[#647b8e] border-[#E4EBF0] hover:bg-[#f4fafc] hover:text-[#223749]'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${
+                  isActive
+                    ? 'bg-white/25 text-white'
+                    : 'bg-[#f4fafc] text-[#16567d] border border-[#E4EBF0]'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search & Filter Bar */}
@@ -298,9 +364,10 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
               onChange={(e) => setSortOrder(e.target.value as any)}
               className="w-full px-3 py-2 rounded-xl border border-[#E4EBF0] bg-white text-xs text-[#223749] focus:outline-hidden focus:border-[#4eafde]"
             >
-              <option value="nearest">Terdekat / Jadwal Depan</option>
-              <option value="newest_first">Tanggal Terbaru &darr;</option>
-              <option value="oldest_first">Tanggal Terlama &uarr;</option>
+              <option value="recently_added">Input Terbaru (Baru Dibuat)</option>
+              <option value="nearest">Jadwal Terdekat</option>
+              <option value="newest_first">Tanggal Jadwal Terbaru &darr;</option>
+              <option value="oldest_first">Tanggal Jadwal Terlama &uarr;</option>
             </select>
           </div>
         </div>
@@ -364,6 +431,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                     <th className="py-3.5 px-4">Child</th>
                     <th className="py-3.5 px-4">Treatment</th>
                     <th className="py-3.5 px-3">Guest Category</th>
+                    <th className="py-3.5 px-3">Note</th>
                     <th className="py-3.5 px-3">Status</th>
                     <th className="py-3.5 px-4 text-right">Action</th>
                   </tr>
@@ -371,6 +439,8 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                 <tbody className="divide-y divide-[#E4EBF0]/70">
                   {sortedReservations.map((item) => {
                     const isItemToday = item.reservation_date === todayStr;
+                    const catTheme = getCategoryTheme(item.guest_category);
+                    const hasNote = Boolean(item.notes && item.notes.trim());
                     return (
                       <tr
                         key={item.id}
@@ -390,7 +460,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
 
                         {/* Time */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
-                          <span className="font-bold text-[#16567d] bg-[#e8f5fb] px-2 py-1 rounded-md text-xs tabular-nums border border-[#4eafde]/30">
+                          <span className={`font-bold px-2 py-1 rounded-md text-xs tabular-nums border ${catTheme.timeChipClass}`}>
                             {item.reservation_time}
                           </span>
                         </td>
@@ -414,6 +484,23 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                         {/* Guest Category */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
                           <CategoryBadge category={item.guest_category} />
+                        </td>
+
+                        {/* Note Pop-up trigger */}
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => onOpenNote(item)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
+                              hasNote
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749] hover:border-[#4eafde]'
+                            }`}
+                            title={hasNote ? item.notes || '' : 'Tambah catatan'}
+                          >
+                            <StickyNote className="w-3.5 h-3.5 text-amber-500" />
+                            <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
+                          </button>
                         </td>
 
                         {/* Status */}
@@ -456,71 +543,92 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
 
             {/* Mobile / Tablet Responsive Card List */}
             <div className="block lg:hidden divide-y divide-[#E4EBF0]">
-              {sortedReservations.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectReservation(item)}
-                  className="p-4 hover:bg-[#f4fafc] transition-colors cursor-pointer space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs bg-[#e8f5fb] text-[#16567d] px-2 py-0.5 rounded-md border border-[#4eafde]/30 tabular-nums">
-                        {item.reservation_time}
-                      </span>
-                      <span className="text-xs font-semibold text-[#647b8e]">
-                        {formatShortDate(item.reservation_date)}
-                      </span>
+              {sortedReservations.map((item) => {
+                const catTheme = getCategoryTheme(item.guest_category);
+                const hasNote = Boolean(item.notes && item.notes.trim());
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => onSelectReservation(item)}
+                    className="p-4 hover:bg-[#f4fafc] transition-colors cursor-pointer space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-xs px-2 py-0.5 rounded-md border tabular-nums ${catTheme.timeChipClass}`}>
+                          {item.reservation_time}
+                        </span>
+                        <span className="text-xs font-semibold text-[#647b8e]">
+                          {formatShortDate(item.reservation_date)}
+                        </span>
+                      </div>
+                      <StatusBadge status={item.status} size="sm" />
                     </div>
-                    <StatusBadge status={item.status} size="sm" />
-                  </div>
 
-                  <div>
-                    <div className="text-base font-bold text-[#223749]">
-                      {item.mom_name}
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-base font-bold text-[#223749]">
+                          {item.mom_name}
+                        </div>
+                        <CategoryBadge category={item.guest_category} />
+                      </div>
+                      <div className="text-xs text-[#647b8e] mt-0.5">
+                        Anak: {item.child_name} · {item.child_age}
+                      </div>
+                      <div className="text-xs font-medium text-[#16567d] mt-1">
+                        {item.treatment_name}
+                      </div>
                     </div>
-                    <div className="text-xs text-[#647b8e] mt-0.5">
-                      Anak: {item.child_name} · {item.child_age}
-                    </div>
-                    <div className="text-xs font-medium text-[#16567d] mt-1">
-                      {item.treatment_name}
-                    </div>
-                  </div>
 
-                  <div className="pt-2 border-t border-[#E4EBF0]/70 flex items-center justify-between text-xs">
-                    <CategoryBadge category={item.guest_category} />
-
-                    <div className="flex items-center gap-2">
+                    <div className="pt-2 border-t border-[#E4EBF0]/70 flex items-center justify-between gap-2 text-xs">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSelectReservation(item);
+                          onOpenNote(item);
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-[#f4fafc] border border-[#E4EBF0] text-xs font-semibold text-[#16567d]"
+                        className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+                          hasNote
+                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                            : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749]'
+                        }`}
                       >
-                        View
+                        <StickyNote className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditReservation(item);
-                        }}
-                        className="p-1 text-[#647b8e] hover:text-[#223749]"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteReservation(item);
-                        }}
-                        className="p-1 text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectReservation(item);
+                          }}
+                          className="min-h-[36px] px-3 py-1 rounded-xl bg-[#f4fafc] border border-[#E4EBF0] text-xs font-semibold text-[#16567d]"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditReservation(item);
+                          }}
+                          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-[#647b8e] hover:text-[#223749] hover:bg-[#f4fafc]"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteReservation(item);
+                          }}
+                          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

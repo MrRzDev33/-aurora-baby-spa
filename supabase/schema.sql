@@ -27,9 +27,13 @@ CREATE TABLE IF NOT EXISTS public.reservations (
     reservation_time TIME NOT NULL,
     treatment_id UUID NOT NULL REFERENCES public.treatments(id) ON DELETE RESTRICT,
     status TEXT NOT NULL DEFAULT 'Pending',
+    notes TEXT DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migration helper for existing databases
+ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
 -- 4. INDEXES
 CREATE INDEX IF NOT EXISTS idx_reservations_date ON public.reservations (reservation_date);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { GuestCategory, ReservationStatus } from '../../types';
+import { getCategoryTheme } from '../../utils/categoryTheme';
 
 interface StatusBadgeProps {
   status: ReservationStatus;
@@ -65,15 +66,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
 };
 
 export const CategoryBadge: React.FC<{ category: GuestCategory }> = ({ category }) => {
-  let style = 'bg-[#e8f5fb] text-[#16567d] border-[#4eafde]/40';
-  if (category === 'Pelanggan') {
-    style = 'bg-[#f8fafc] text-[#334155] border-[#e2e8f0]';
-  } else if (category === 'Influencer') {
-    style = 'bg-[#faf5ff] text-[#6b21a8] border-[#e9d5ff]';
-  }
+  const theme = getCategoryTheme(category);
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs border font-medium ${style}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs border font-semibold ${theme.badgeClass}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${theme.dotClass}`} />
       {category}
     </span>
   );

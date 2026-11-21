@@ -4,6 +4,7 @@ import {
   Edit2,
   ExternalLink,
   MessageSquare,
+  StickyNote,
   Trash2,
   User,
   Users,
@@ -24,6 +25,7 @@ interface ReservationDetailModalProps {
   onClose: () => void;
   onEdit: (reservation: ReservationWithTreatment) => void;
   onDelete: (reservation: ReservationWithTreatment) => void;
+  onOpenNote?: (reservation: ReservationWithTreatment) => void;
 }
 
 export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
@@ -32,6 +34,7 @@ export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
   onClose,
   onEdit,
   onDelete,
+  onOpenNote,
 }) => {
   if (!isOpen || !reservation) return null;
 
@@ -175,6 +178,32 @@ export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
               <span className="font-bold text-[#223749] text-right">
                 {reservation.treatment_name}
               </span>
+            </div>
+
+            {/* Catatan / Note */}
+            <div className="pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-[#647b8e]">
+                  <StickyNote className="w-4 h-4 text-amber-500" />
+                  <span className="font-medium text-xs">Note / Catatan</span>
+                </div>
+                {onOpenNote && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenNote(reservation)}
+                    className="text-xs font-semibold text-[#4eafde] hover:text-[#3ea0cf] hover:underline"
+                  >
+                    {reservation.notes ? 'Edit Note' : '+ Tambah Note'}
+                  </button>
+                )}
+              </div>
+              {reservation.notes ? (
+                <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-[#223749] leading-relaxed whitespace-pre-wrap">
+                  {reservation.notes}
+                </div>
+              ) : (
+                <p className="text-xs text-[#9AA7B4] italic">Belum ada catatan.</p>
+              )}
             </div>
           </div>
         </div>

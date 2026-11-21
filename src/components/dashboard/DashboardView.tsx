@@ -4,11 +4,13 @@ import {
   CalendarRange,
   Clock,
   Plus,
+  StickyNote,
   Users,
 } from 'lucide-react';
 import React from 'react';
 import { DashboardStats, ReservationWithTreatment } from '../../types';
-import { StatusBadge } from '../ui/StatusBadge';
+import { getCategoryTheme } from '../../utils/categoryTheme';
+import { CategoryBadge, StatusBadge } from '../ui/StatusBadge';
 
 interface DashboardViewProps {
   stats: DashboardStats;
@@ -16,6 +18,7 @@ interface DashboardViewProps {
   onOpenNewReservation: () => void;
   onNavigateToCalendar: () => void;
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
+  onOpenNote?: (reservation: ReservationWithTreatment) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -24,6 +27,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewReservation,
   onNavigateToCalendar,
   onSelectReservation,
+  onOpenNote,
 }) => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -163,41 +167,63 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-[#E4EBF0]">
-              {upcomingReservations.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectReservation(item)}
-                  className="py-3.5 px-3 -mx-3 rounded-xl hover:bg-[#f4fafc] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
-                >
-                  <div className="flex items-start sm:items-center gap-4">
-                    {/* Time badge */}
-                    <div className="px-2.5 py-1.5 rounded-lg bg-[#e8f5fb] text-[#16567d] font-semibold text-sm tabular-nums shrink-0 border border-[#4eafde]/30">
-                      {item.reservation_time}
+              {upcomingReservations.map((item) => {
+                const catTheme = getCategoryTheme(item.guest_category);
+                const hasNote = Boolean(item.notes && item.notes.trim());
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => onSelectReservation(item)}
+                    className="py-3.5 px-3 -mx-3 rounded-xl hover:bg-[#f4fafc] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  >
+                    <div className="flex items-start sm:items-center gap-4">
+                      {/* Time badge */}
+                      <div className={`px-2.5 py-1.5 rounded-lg font-semibold text-sm tabular-nums shrink-0 border ${catTheme.timeChipClass}`}>
+                        {item.reservation_time}
+                      </div>
+
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-sm text-[#223749] group-hover:text-[#16567d] transition-colors">
+                            {item.mom_name}
+                          </span>
+                          <CategoryBadge category={item.guest_category} />
+                          <span className="text-xs text-[#647b8e]">
+                            ({item.child_name} · {item.child_age})
+                          </span>
+                        </div>
+                        <div className="text-xs text-[#647b8e] mt-0.5">
+                          {item.treatment_name} · {item.reservation_date}
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-[#223749] group-hover:text-[#16567d] transition-colors">
-                          {item.mom_name}
-                        </span>
-                        <span className="text-xs text-[#647b8e]">
-                          ({item.child_name} · {item.child_age})
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#647b8e] mt-0.5">
-                        {item.treatment_name} · {item.reservation_date}
-                      </div>
+                    <div className="flex items-center gap-2.5 self-end sm:self-center">
+                      {onOpenNote && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenNote(item);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
+                            hasNote
+                              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                              : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749]'
+                          }`}
+                        >
+                          <StickyNote className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{hasNote ? 'Note' : '+ Note'}</span>
+                        </button>
+                      )}
+                      <StatusBadge status={item.status} size="sm" />
+                      <span className="text-xs text-[#647b8e] group-hover:text-[#223749] hidden sm:inline">
+                        Detail &rarr;
+                      </span>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-center">
-                    <StatusBadge status={item.status} size="sm" />
-                    <span className="text-xs text-[#647b8e] group-hover:text-[#223749] hidden sm:inline">
-                      Detail &rarr;
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

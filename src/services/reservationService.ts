@@ -21,6 +21,7 @@ export interface SupabaseReservationRow {
   reservation_time: string;
   treatment_id: string;
   status: string;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
   treatments?: {
@@ -83,6 +84,46 @@ const INITIAL_RESERVATIONS: ReservationWithTreatment[] = [];
 // Local fallback store keys
 const LOCAL_STORE_RESERVATIONS = 'aurora_reservations_v2';
 const LOCAL_STORE_TREATMENTS = 'aurora_treatments_v2';
+const LOCAL_STORE_NOTES = 'aurora_reservation_notes_v1';
+
+let supabaseNotesSupported: boolean | null = null;
+
+export function isNotesColumnMissing(): boolean {
+  return supabaseNotesSupported === false;
+}
+
+function getLocalNotesMap(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(LOCAL_STORE_NOTES);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLocalNote(id: string, note: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getLocalNotesMap();
+    if (note.trim()) {
+      map[id] = note;
+    } else {
+      delete map[id];
+    }
+    localStorage.setItem(LOCAL_STORE_NOTES, JSON.stringify(map));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function isMissingNotesColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === '42703' ||
+    (error.message || '').toLowerCase().includes('notes')
+  );
+}
 
 function getLocalTreatments(): Treatment[] {
   if (typeof window === 'undefined') return INITIAL_TREATMENTS;
@@ -469,37 +510,70 @@ export const reservationService = {
     }
 
     try {
-      const { data, error } = await client
-        .from('reservations')
-        .select(`
+      const selectWithNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        notes,
+        created_at,
+        updated_at,
+        treatments (
           id,
-          reservation_code,
-          mom_name,
-          child_name,
-          child_age,
-          whatsapp,
-          guest_category,
-          reservation_date,
-          reservation_time,
-          treatment_id,
-          status,
-          created_at,
-          updated_at,
-          treatments (
-            id,
-            name,
-            is_active
-          )
-        `)
-        .order('reservation_date', { ascending: true })
-        .order('reservation_time', { ascending: true });
+          name,
+          is_active
+        )
+      `;
+      const selectWithoutNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        created_at,
+        updated_at,
+        treatments (
+          id,
+          name,
+          is_active
+        )
+      `;
 
-      if (error) {
-        console.warn('Supabase getReservations error, using local fallback:', error.message);
+      let queryResult: { data: any[] | null; error: any } = await client
+        .from('reservations')
+        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
+        .order('created_at', { ascending: false });
+
+      if (queryResult.error && isMissingNotesColumnError(queryResult.error)) {
+        supabaseNotesSupported = false;
+        queryResult = await client
+          .from('reservations')
+          .select(selectWithoutNotes)
+          .order('created_at', { ascending: false });
+      } else if (!queryResult.error && supabaseNotesSupported !== false) {
+        supabaseNotesSupported = true;
+      }
+
+      if (queryResult.error) {
+        console.warn('Supabase getReservations error, using local fallback:', queryResult.error.message);
         return getLocalReservations();
       }
 
-      const list: ReservationWithTreatment[] = (data || []).map((row: any) => ({
+      const localNotes = getLocalNotesMap();
+      const list: ReservationWithTreatment[] = (queryResult.data || []).map((row: any) => ({
         id: row.id,
         reservation_code: row.reservation_code,
         mom_name: row.mom_name,
@@ -512,6 +586,7 @@ export const reservationService = {
         treatment_id: row.treatment_id,
         treatment_name: row.treatments?.name || 'Treatment Dihapus',
         status: row.status as ReservationStatus,
+        notes: row.notes !== undefined ? (row.notes ?? '') : (localNotes[row.id] ?? ''),
         created_at: row.created_at,
         updated_at: row.updated_at,
       }));
@@ -597,6 +672,7 @@ export const reservationService = {
 
       const newRes: ReservationWithTreatment = {
         ...input,
+        notes: input.notes ?? '',
         id: crypto.randomUUID(),
         reservation_code: code,
         treatment_name: trt?.name || 'Treatment',
@@ -609,45 +685,91 @@ export const reservationService = {
     }
 
     try {
-      const { data, error } = await client
-        .from('reservations')
-        .insert({
-          reservation_code: code,
-          mom_name: input.mom_name,
-          child_name: input.child_name,
-          child_age: input.child_age,
-          whatsapp: input.whatsapp,
-          guest_category: input.guest_category,
-          reservation_date: input.reservation_date,
-          reservation_time: input.reservation_time,
-          treatment_id: input.treatment_id,
-          status: input.status,
-        })
-        .select(`
+      const basePayload = {
+        reservation_code: code,
+        mom_name: input.mom_name,
+        child_name: input.child_name,
+        child_age: input.child_age,
+        whatsapp: input.whatsapp,
+        guest_category: input.guest_category,
+        reservation_date: input.reservation_date,
+        reservation_time: input.reservation_time,
+        treatment_id: input.treatment_id,
+        status: input.status,
+      };
+      const selectWithNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        notes,
+        created_at,
+        updated_at,
+        treatments (
           id,
-          reservation_code,
-          mom_name,
-          child_name,
-          child_age,
-          whatsapp,
-          guest_category,
-          reservation_date,
-          reservation_time,
-          treatment_id,
-          status,
-          created_at,
-          updated_at,
-          treatments (
-            id,
-            name,
-            is_active
-          )
-        `)
+          name,
+          is_active
+        )
+      `;
+      const selectWithoutNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        created_at,
+        updated_at,
+        treatments (
+          id,
+          name,
+          is_active
+        )
+      `;
+
+      const insertPayload: Record<string, any> =
+        supabaseNotesSupported === false
+          ? basePayload
+          : { ...basePayload, notes: input.notes ?? '' };
+
+      let res: { data: any; error: any } = await client
+        .from('reservations')
+        .insert(insertPayload)
+        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
         .single();
 
-      if (error) {
-        console.error('Supabase insert reservation error:', error);
+      if (res.error && isMissingNotesColumnError(res.error)) {
+        supabaseNotesSupported = false;
+        res = await client
+          .from('reservations')
+          .insert(basePayload)
+          .select(selectWithoutNotes)
+          .single();
+      } else if (!res.error && supabaseNotesSupported !== false) {
+        supabaseNotesSupported = true;
+      }
+
+      if (res.error || !res.data) {
+        console.error('Supabase insert reservation error:', res.error);
         throw new Error('Unable to connect to the database. Please try again.');
+      }
+
+      const data: any = res.data;
+      const finalNotes = input.notes ?? '';
+      if (supabaseNotesSupported === false && finalNotes) {
+        setLocalNote(data.id, finalNotes);
       }
 
       return {
@@ -661,8 +783,9 @@ export const reservationService = {
         reservation_date: data.reservation_date,
         reservation_time: formatTimeHHmm(data.reservation_time),
         treatment_id: data.treatment_id,
-        treatment_name: (data as any).treatments?.name || 'Treatment',
+        treatment_name: data.treatments?.name || 'Treatment',
         status: data.status as ReservationStatus,
+        notes: data.notes !== undefined ? (data.notes ?? '') : finalNotes,
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
@@ -700,38 +823,88 @@ export const reservationService = {
     }
 
     try {
-      const { data, error } = await client
-        .from('reservations')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select(`
+      const { notes: incomingNotes, ...otherUpdates } = updates;
+      const hasNotesUpdate = incomingNotes !== undefined;
+
+      const selectWithNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        notes,
+        created_at,
+        updated_at,
+        treatments (
           id,
-          reservation_code,
-          mom_name,
-          child_name,
-          child_age,
-          whatsapp,
-          guest_category,
-          reservation_date,
-          reservation_time,
-          treatment_id,
-          status,
-          created_at,
-          updated_at,
-          treatments (
-            id,
-            name,
-            is_active
-          )
-        `)
+          name,
+          is_active
+        )
+      `;
+      const selectWithoutNotes = `
+        id,
+        reservation_code,
+        mom_name,
+        child_name,
+        child_age,
+        whatsapp,
+        guest_category,
+        reservation_date,
+        reservation_time,
+        treatment_id,
+        status,
+        created_at,
+        updated_at,
+        treatments (
+          id,
+          name,
+          is_active
+        )
+      `;
+
+      const payloadWithNotes: Record<string, any> = {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+      const payloadWithoutNotes: Record<string, any> = {
+        ...otherUpdates,
+        updated_at: new Date().toISOString(),
+      };
+
+      let res: { data: any; error: any } = await client
+        .from('reservations')
+        .update(supabaseNotesSupported === false ? payloadWithoutNotes : payloadWithNotes)
+        .eq('id', id)
+        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
         .single();
 
-      if (error) {
+      if (res.error && isMissingNotesColumnError(res.error)) {
+        supabaseNotesSupported = false;
+        res = await client
+          .from('reservations')
+          .update(payloadWithoutNotes)
+          .eq('id', id)
+          .select(selectWithoutNotes)
+          .single();
+      } else if (!res.error && supabaseNotesSupported !== false) {
+        supabaseNotesSupported = true;
+      }
+
+      if (res.error || !res.data) {
         throw new Error('Unable to connect to the database. Please try again.');
       }
+
+      const data: any = res.data;
+      if (supabaseNotesSupported === false && hasNotesUpdate) {
+        setLocalNote(id, incomingNotes ?? '');
+      }
+      const localNotes = getLocalNotesMap();
 
       return {
         id: data.id,
@@ -744,8 +917,14 @@ export const reservationService = {
         reservation_date: data.reservation_date,
         reservation_time: formatTimeHHmm(data.reservation_time),
         treatment_id: data.treatment_id,
-        treatment_name: (data as any).treatments?.name || 'Treatment',
+        treatment_name: data.treatments?.name || 'Treatment',
         status: data.status as ReservationStatus,
+        notes:
+          data.notes !== undefined
+            ? (data.notes ?? '')
+            : hasNotesUpdate
+            ? (incomingNotes ?? '')
+            : (localNotes[id] ?? ''),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };

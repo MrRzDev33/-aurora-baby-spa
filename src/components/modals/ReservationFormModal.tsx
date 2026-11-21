@@ -60,6 +60,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
   const [treatmentId, setTreatmentId] = useState('');
   const [treatmentName, setTreatmentName] = useState('');
   const [status, setStatus] = useState<ReservationStatus>('Pending');
+  const [notes, setNotes] = useState('');
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,6 +79,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setTreatmentId(initialData.treatment_id);
         setTreatmentName(initialData.treatment_name || '');
         setStatus(initialData.status);
+        setNotes(initialData.notes || '');
       } else {
         setMomName('');
         setChildName('');
@@ -89,6 +91,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setTreatmentId('');
         setTreatmentName('');
         setStatus('Pending');
+        setNotes('');
       }
       setErrors({});
     }
@@ -174,6 +177,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         reservation_time: reservationTime,
         treatment_id: targetTreatmentId,
         status: status,
+        notes: notes.trim(),
       });
     } catch {
       // Keep form intact! Do not reset fields.
@@ -313,15 +317,44 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
                 <label className="block text-xs font-semibold text-[#223749] mb-1">
                   Kategori Tamu <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={guestCategory}
-                  onChange={(e) => setGuestCategory(e.target.value as GuestCategory)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-sm text-[#223749] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all"
-                >
-                  <option value="Trial">Trial</option>
-                  <option value="Pelanggan">Pelanggan</option>
-                  <option value="Influencer">Influencer</option>
-                </select>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      {
+                        value: 'Trial',
+                        dot: 'bg-[#4EAFDE]',
+                        active: 'bg-[#E8F5FB] text-[#16567D] border-[#4EAFDE] ring-1 ring-[#4EAFDE]/40',
+                      },
+                      {
+                        value: 'Pelanggan',
+                        dot: 'bg-[#22C55E]',
+                        active: 'bg-[#ECFDF3] text-[#156B3B] border-[#22C55E] ring-1 ring-[#22C55E]/40',
+                      },
+                      {
+                        value: 'Influencer',
+                        dot: 'bg-[#A855F7]',
+                        active: 'bg-[#F5F0FF] text-[#6B21A8] border-[#A855F7] ring-1 ring-[#A855F7]/40',
+                      },
+                    ] as const
+                  ).map((cat) => {
+                    const isSelected = guestCategory === cat.value;
+                    return (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setGuestCategory(cat.value)}
+                        className={`min-h-[42px] px-2 py-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? cat.active
+                            : 'bg-white border-[#E4EBF0] text-[#647b8e] hover:bg-[#FAFDFE]'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${cat.dot}`} />
+                        <span>{cat.value}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 {errors.guest_category && (
                   <p className="text-red-500 text-xs mt-1">{errors.guest_category}</p>
                 )}
@@ -464,6 +497,20 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
                 <option value="Rescheduled">Rescheduled</option>
                 <option value="No Show">No Show</option>
               </select>
+            </div>
+
+            {/* 10. Note / Catatan */}
+            <div>
+              <label className="block text-xs font-semibold text-[#223749] mb-1">
+                Note / Catatan Tambahan <span className="text-[#8699a8] font-normal">(Opsional)</span>
+              </label>
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Contoh: Alergi minyak telon, request terapis Kak Rina, bawa 2 anak..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all resize-none"
+              />
             </div>
           </div>
 
