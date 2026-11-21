@@ -9,11 +9,11 @@ import { DashboardView } from './components/dashboard/DashboardView';
 import { Header } from './components/layout/Header';
 import { NavTab, Sidebar } from './components/layout/Sidebar';
 import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationModal';
-import { NotePopupModal } from './components/modals/NotePopupModal';
 import { ReservationDetailModal } from './components/modals/ReservationDetailModal';
 import { ReservationFormModal } from './components/modals/ReservationFormModal';
 import { ReservationListView } from './components/reservations/ReservationListView';
 import { SettingsView } from './components/settings/SettingsView';
+import { CategoryLegendPopup } from './components/ui/CategoryLegendPopup';
 import { Toast, ToastMessage } from './components/ui/Toast';
 import { useDatabase } from './hooks/useDatabase';
 import { Reservation, ReservationWithTreatment } from './types';
@@ -55,9 +55,6 @@ export default function App() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<ReservationWithTreatment | null>(null);
-
-  const [isNoteOpen, setIsNoteOpen] = useState(false);
-  const [noteReservation, setNoteReservation] = useState<ReservationWithTreatment | null>(null);
 
   // Toast notification state
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -129,20 +126,6 @@ export default function App() {
     }
   };
 
-  // Handlers for Note Popup
-  const handleOpenNote = (res: ReservationWithTreatment) => {
-    setNoteReservation(res);
-    setIsNoteOpen(true);
-  };
-
-  const handleSaveNote = async (reservationId: string, noteText: string) => {
-    const updated = await updateReservation(reservationId, { notes: noteText });
-    if (selectedReservation && selectedReservation.id === reservationId) {
-      setSelectedReservation(updated);
-    }
-    showToast(noteText ? 'Catatan berhasil disimpan.' : 'Catatan dihapus.');
-  };
-
   return (
     <div className="min-h-screen bg-white text-[#263746] flex flex-col md:flex-row font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Sidebar */}
@@ -173,7 +156,11 @@ export default function App() {
         />
 
         {/* View Content */}
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+        <main
+          className={`flex-1 p-4 sm:p-8 overflow-y-auto ${
+            currentTab === 'calendar' || currentTab === 'reservations' ? 'pb-28 sm:pb-28' : ''
+          }`}
+        >
           {currentTab === 'dashboard' && (
             <DashboardView
               stats={stats}
@@ -181,7 +168,6 @@ export default function App() {
               onOpenNewReservation={() => handleOpenNewReservation()}
               onNavigateToCalendar={() => setCurrentTab('calendar')}
               onSelectReservation={handleSelectReservation}
-              onOpenNote={handleOpenNote}
             />
           )}
 
@@ -189,7 +175,6 @@ export default function App() {
             <CalendarView
               reservations={reservations}
               onSelectReservation={handleSelectReservation}
-              onOpenNote={handleOpenNote}
               onOpenNewReservation={() => handleOpenNewReservation()}
               onOpenNewReservationForDate={(dateStr) => handleOpenNewReservation(dateStr)}
             />
@@ -203,7 +188,6 @@ export default function App() {
               onSelectReservation={handleSelectReservation}
               onEditReservation={handleStartEditReservation}
               onDeleteReservation={handleStartDeleteReservation}
-              onOpenNote={handleOpenNote}
             />
           )}
 
@@ -250,10 +234,6 @@ export default function App() {
         }}
         onEdit={handleStartEditReservation}
         onDelete={handleStartDeleteReservation}
-        onOpenNote={(res) => {
-          setIsDetailOpen(false);
-          handleOpenNote(res);
-        }}
       />
 
       {/* 3. Delete Confirmation Modal */}
@@ -267,16 +247,10 @@ export default function App() {
         onConfirm={handleConfirmDelete}
       />
 
-      {/* 4. Floating Responsive Note Popup Modal */}
-      <NotePopupModal
-        isOpen={isNoteOpen}
-        reservation={noteReservation}
-        onClose={() => {
-          setIsNoteOpen(false);
-          setNoteReservation(null);
-        }}
-        onSaveNote={handleSaveNote}
-      />
+      {/* Animated Floating Bottom-Left Category Legend Pop-up */}
+      {(currentTab === 'calendar' || currentTab === 'reservations') && (
+        <CategoryLegendPopup isSidebarCollapsed={isSidebarCollapsed} />
+      )}
 
       {/* Toast Notification */}
       <Toast toast={toast} onClose={() => setToast(null)} />

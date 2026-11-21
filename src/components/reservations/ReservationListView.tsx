@@ -3,7 +3,6 @@ import {
   Plus,
   RotateCcw,
   Search,
-  StickyNote,
   Trash2,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
@@ -28,7 +27,6 @@ interface ReservationListViewProps {
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
   onEditReservation: (reservation: ReservationWithTreatment) => void;
   onDeleteReservation: (reservation: ReservationWithTreatment) => void;
-  onOpenNote: (reservation: ReservationWithTreatment) => void;
 }
 
 export const ReservationListView: React.FC<ReservationListViewProps> = ({
@@ -38,7 +36,6 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   onSelectReservation,
   onEditReservation,
   onDeleteReservation,
-  onOpenNote,
 }) => {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,7 +207,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
       </div>
 
       {/* Quick Period Classification Tabs: Semua | Hari Ini | Minggu Ini | Bulan Ini */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
         {(
           [
             { key: 'all', label: 'Semua', count: periodCounts.all },
@@ -225,7 +222,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
               key={tab.key}
               type="button"
               onClick={() => setDateFilter(tab.key)}
-              className={`min-h-[40px] shrink-0 px-4 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
+              className={`min-h-[42px] px-3.5 sm:px-4 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between sm:justify-start gap-2 ${
                 isActive
                   ? 'bg-[#4eafde] text-white border-[#4eafde] shadow-xs'
                   : 'bg-white text-[#647b8e] border-[#E4EBF0] hover:bg-[#f4fafc] hover:text-[#223749]'
@@ -431,7 +428,6 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                     <th className="py-3.5 px-4">Child</th>
                     <th className="py-3.5 px-4">Treatment</th>
                     <th className="py-3.5 px-3">Guest Category</th>
-                    <th className="py-3.5 px-3">Note</th>
                     <th className="py-3.5 px-3">Status</th>
                     <th className="py-3.5 px-4 text-right">Action</th>
                   </tr>
@@ -440,27 +436,39 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                   {sortedReservations.map((item) => {
                     const isItemToday = item.reservation_date === todayStr;
                     const catTheme = getCategoryTheme(item.guest_category);
-                    const hasNote = Boolean(item.notes && item.notes.trim());
                     return (
                       <tr
                         key={item.id}
-                        className={`hover:bg-[#f9fcfe] transition-colors ${
-                          isItemToday ? 'bg-[#f4fafc]/60' : ''
-                        }`}
+                        className={`transition-colors ${catTheme.rowTintClass}`}
                       >
                         {/* Date */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-semibold text-[#223749] block">
-                            {formatShortDate(item.reservation_date)}
-                          </span>
-                          <span className="text-[11px] font-mono text-[#647b8e]">
-                            {item.reservation_code}
-                          </span>
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={`w-1.5 h-8 rounded-full shrink-0 ${catTheme.dotClass}`}
+                              aria-hidden="true"
+                            />
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-[#223749]">
+                                  {formatShortDate(item.reservation_date)}
+                                </span>
+                                {isItemToday && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#4eafde]/15 text-[#16567d]">
+                                    Hari Ini
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] font-mono text-[#647b8e]">
+                                {item.reservation_code}
+                              </span>
+                            </div>
+                          </div>
                         </td>
 
                         {/* Time */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
-                          <span className={`font-bold px-2 py-1 rounded-md text-xs tabular-nums border ${catTheme.timeChipClass}`}>
+                          <span className={`font-bold px-2.5 py-1 rounded-md text-xs tabular-nums border ${catTheme.timeChipClass}`}>
                             {item.reservation_time}
                           </span>
                         </td>
@@ -486,23 +494,6 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                           <CategoryBadge category={item.guest_category} />
                         </td>
 
-                        {/* Note Pop-up trigger */}
-                        <td className="py-3.5 px-3 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => onOpenNote(item)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
-                              hasNote
-                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                                : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749] hover:border-[#4eafde]'
-                            }`}
-                            title={hasNote ? item.notes || '' : 'Tambah catatan'}
-                          >
-                            <StickyNote className="w-3.5 h-3.5 text-amber-500" />
-                            <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
-                          </button>
-                        </td>
-
                         {/* Status */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
                           <StatusBadge status={item.status} size="sm" />
@@ -513,21 +504,21 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                           <div className="inline-flex items-center gap-1.5">
                             <button
                               onClick={() => onSelectReservation(item)}
-                              className="px-2.5 py-1 rounded-lg border border-[#E4EBF0] hover:border-[#4eafde] text-xs font-semibold text-[#16567d] hover:bg-[#e8f5fb] transition-colors"
+                              className="px-2.5 py-1 rounded-lg bg-white border border-[#E4EBF0] hover:border-[#4eafde] text-xs font-semibold text-[#16567d] hover:bg-[#e8f5fb] transition-colors"
                               title="View Detail"
                             >
                               View
                             </button>
                             <button
                               onClick={() => onEditReservation(item)}
-                              className="p-1 rounded-lg hover:bg-[#f4fafc] text-[#647b8e] hover:text-[#223749] transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-white text-[#647b8e] hover:text-[#223749] transition-colors"
                               title="Edit"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => onDeleteReservation(item)}
-                              className="p-1 rounded-lg hover:bg-red-50 text-[#647b8e] hover:text-red-600 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-[#647b8e] hover:text-red-600 transition-colors"
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -542,59 +533,52 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
             </div>
 
             {/* Mobile / Tablet Responsive Card List */}
-            <div className="block lg:hidden divide-y divide-[#E4EBF0]">
+            <div className="block lg:hidden p-3 sm:p-4 space-y-3 bg-[#FAFDFE]">
               {sortedReservations.map((item) => {
                 const catTheme = getCategoryTheme(item.guest_category);
-                const hasNote = Boolean(item.notes && item.notes.trim());
+                const isItemToday = item.reservation_date === todayStr;
                 return (
                   <div
                     key={item.id}
                     onClick={() => onSelectReservation(item)}
-                    className="p-4 hover:bg-[#f4fafc] transition-colors cursor-pointer space-y-3"
+                    className={`p-4 rounded-xl border-2 transition-colors cursor-pointer space-y-3 shadow-2xs ${catTheme.accentBorderClass}`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold text-xs px-2 py-0.5 rounded-md border tabular-nums ${catTheme.timeChipClass}`}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-bold text-xs px-2.5 py-1 rounded-md border tabular-nums ${catTheme.timeChipClass}`}>
                           {item.reservation_time}
                         </span>
-                        <span className="text-xs font-semibold text-[#647b8e]">
+                        <span className="text-xs font-semibold text-[#4E6273]">
                           {formatShortDate(item.reservation_date)}
                         </span>
+                        {isItemToday && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-[#16567d] border border-[#4eafde]/40">
+                            Hari Ini
+                          </span>
+                        )}
                       </div>
                       <StatusBadge status={item.status} size="sm" />
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-base font-bold text-[#223749]">
+                        <div className="text-base font-bold text-[#223749] truncate">
                           {item.mom_name}
                         </div>
                         <CategoryBadge category={item.guest_category} />
                       </div>
-                      <div className="text-xs text-[#647b8e] mt-0.5">
+                      <div className="text-xs text-[#4E6273] mt-0.5">
                         Anak: {item.child_name} · {item.child_age}
                       </div>
-                      <div className="text-xs font-medium text-[#16567d] mt-1">
+                      <div className="text-xs font-semibold text-[#16567d] mt-1">
                         {item.treatment_name}
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-[#E4EBF0]/70 flex items-center justify-between gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenNote(item);
-                        }}
-                        className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
-                          hasNote
-                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                            : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749]'
-                        }`}
-                      >
-                        <StickyNote className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
-                      </button>
+                    <div className="pt-2.5 border-t border-black/10 flex items-center justify-between gap-2 text-xs">
+                      <span className="text-[11px] font-mono text-[#647b8e]">
+                        {item.reservation_code}
+                      </span>
 
                       <div className="flex items-center gap-1.5">
                         <button
@@ -602,7 +586,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                             e.stopPropagation();
                             onSelectReservation(item);
                           }}
-                          className="min-h-[36px] px-3 py-1 rounded-xl bg-[#f4fafc] border border-[#E4EBF0] text-xs font-semibold text-[#16567d]"
+                          className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-white border border-[#E4EBF0] text-xs font-semibold text-[#16567d] hover:border-[#4eafde]"
                         >
                           View
                         </button>
@@ -611,7 +595,8 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                             e.stopPropagation();
                             onEditReservation(item);
                           }}
-                          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-[#647b8e] hover:text-[#223749] hover:bg-[#f4fafc]"
+                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-white border border-[#E4EBF0] text-[#647b8e] hover:text-[#223749]"
+                          aria-label="Edit reservasi"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -620,7 +605,8 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                             e.stopPropagation();
                             onDeleteReservation(item);
                           }}
-                          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-white border border-red-200 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          aria-label="Hapus reservasi"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

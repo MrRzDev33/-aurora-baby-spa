@@ -4,13 +4,11 @@ import {
   ChevronRight,
   Clock,
   Plus,
-  StickyNote,
   X,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import {
   CalendarViewType,
-  GuestCategory,
   ReservationWithTreatment,
 } from '../../types';
 import { getCategoryTheme } from '../../utils/categoryTheme';
@@ -28,7 +26,6 @@ import { CategoryBadge, StatusBadge } from '../ui/StatusBadge';
 interface CalendarViewProps {
   reservations: ReservationWithTreatment[];
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
-  onOpenNote: (reservation: ReservationWithTreatment) => void;
   onOpenNewReservationForDate?: (dateStr: string) => void;
   onOpenNewReservation: () => void;
 }
@@ -36,7 +33,6 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({
   reservations,
   onSelectReservation,
-  onOpenNote,
   onOpenNewReservationForDate,
   onOpenNewReservation,
 }) => {
@@ -196,9 +192,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Calendar Top Control Bar */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E4EBF0] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E4EBF0] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         {/* Left: Month/Year title & Navigation buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1">
             <button
               onClick={handlePrev}
@@ -218,22 +214,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           <button
             onClick={handleToday}
-            className="px-3 py-1.5 rounded-xl border border-[#E4EBF0] hover:bg-[#F5FAFD] text-xs font-semibold text-[#263746] transition-colors"
+            className="px-3 py-1.5 min-h-[36px] rounded-xl border border-[#E4EBF0] hover:bg-[#F5FAFD] text-xs font-semibold text-[#263746] transition-colors"
           >
             Hari Ini
           </button>
 
-          <h2 className="text-lg sm:text-xl font-bold text-[#263746] tracking-tight ml-2">
+          <h2 className="text-base sm:text-xl font-bold text-[#263746] tracking-tight ml-1 sm:ml-2">
             {INDONESIAN_MONTHS[currentMonth]} {currentYear}
           </h2>
         </div>
 
         {/* Right: View Switcher (Month, Week, Day) */}
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-[#f4fafc] border border-[#E4EBF0] rounded-xl flex items-center gap-1">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
+          <div className="p-1 bg-[#f4fafc] border border-[#E4EBF0] rounded-xl flex items-center gap-1 flex-1 sm:flex-initial">
             <button
               onClick={() => setViewType('month')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewType === 'month'
                   ? 'bg-white text-[#16567d] shadow-xs border border-[#4eafde]/50'
                   : 'text-[#647b8e] hover:text-[#223749]'
@@ -243,7 +239,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
             <button
               onClick={() => setViewType('week')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewType === 'week'
                   ? 'bg-white text-[#16567d] shadow-xs border border-[#4eafde]/50'
                   : 'text-[#647b8e] hover:text-[#223749]'
@@ -253,7 +249,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
             <button
               onClick={() => setViewType('day')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewType === 'day'
                   ? 'bg-white text-[#16567d] shadow-xs border border-[#4eafde]/50'
                   : 'text-[#647b8e] hover:text-[#223749]'
@@ -271,25 +267,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <span>+ Reservation</span>
           </button>
         </div>
-      </div>
-
-      {/* Category Color Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[#647b8e]">
-          <span className="font-semibold text-[#223749]">Kategori Tamu:</span>
-          {(['Trial', 'Pelanggan', 'Influencer'] as GuestCategory[]).map((cat) => {
-            const theme = getCategoryTheme(cat);
-            return (
-              <span key={cat} className="inline-flex items-center gap-1.5 font-medium">
-                <span className={`w-2.5 h-2.5 rounded-full ${theme.dotClass}`} />
-                <span className="text-[#223749]">{cat}</span>
-              </span>
-            );
-          })}
-        </div>
-        <span className="text-[11px] text-[#647b8e]">
-          Ketuk ikon <StickyNote className="w-3 h-3 inline text-amber-500 mx-0.5" /> untuk pop-up catatan
-        </span>
       </div>
 
       {/* Main Calendar View Area */}
@@ -323,7 +300,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <div
                     key={dateStr}
                     onClick={() => handleDateClick(dateStr)}
-                    className={`min-h-[110px] sm:min-h-[125px] p-2 flex flex-col justify-between transition-colors cursor-pointer select-none ${
+                    className={`min-h-[84px] sm:min-h-[120px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer select-none overflow-hidden ${
                       !isCurrentMonth ? 'bg-[#fafcfd]/60 opacity-50' : 'bg-white'
                     } ${
                       isSelected
@@ -334,7 +311,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {/* Date Number & Count Badge */}
                     <div className="flex items-start justify-between gap-1">
                       <span
-                        className={`text-sm font-semibold inline-flex items-center justify-center w-7 h-7 rounded-lg ${
+                        className={`text-xs sm:text-sm font-semibold inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg shrink-0 ${
                           isCurrentToday
                             ? 'bg-[#4eafde] text-white font-bold shadow-xs'
                             : isSelected
@@ -347,19 +324,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         {date.getDate()}
                       </span>
 
-                      {/* Reservation count badge: "3 Reservations" or "1 Reservation" */}
                       {resCount > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#e8f5fb] text-[#16567d] border border-[#4eafde]/40 tabular-nums">
-                          {resCount} {resCount === 1 ? 'Reservation' : 'Reservations'}
+                        <span className="text-[10px] sm:text-[11px] font-semibold px-1.5 md:px-2 py-0.5 rounded-md bg-[#e8f5fb] text-[#16567d] border border-[#4eafde]/40 tabular-nums shrink-0">
+                          <span className="md:hidden">{resCount}</span>
+                          <span className="hidden md:inline">
+                            {resCount} {resCount === 1 ? 'Reservation' : 'Reservations'}
+                          </span>
                         </span>
                       )}
                     </div>
 
-                    {/* Events list: [Nama Moms] — [Treatment Short] */}
-                    <div className="mt-2 space-y-1 overflow-hidden">
+                    {/* Events list colored prominently by Guest Category */}
+                    <div className="mt-1 sm:mt-2 space-y-1 overflow-hidden">
                       {dayReservations.slice(0, 2).map((item) => {
                         const catTheme = getCategoryTheme(item.guest_category);
-                        const hasNote = Boolean(item.notes && item.notes.trim());
                         return (
                           <div
                             key={item.id}
@@ -367,42 +345,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               onSelectReservation(item);
                             }}
-                            className={`px-1.5 sm:px-2 py-1 rounded-md border text-[11px] font-medium transition-colors flex items-center justify-between gap-1 ${catTheme.pillClass}`}
+                            className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-md border text-[10px] sm:text-[11px] font-medium transition-colors flex items-center gap-1 min-w-0 ${catTheme.pillClass}`}
                             title={`${item.reservation_time} · ${item.mom_name} (${item.guest_category}) — ${item.treatment_name}`}
                           >
-                            <div className="flex items-center gap-1 min-w-0">
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catTheme.dotClass}`} />
-                              <span className="font-semibold tabular-nums shrink-0">
-                                {item.reservation_time}
+                            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 ${catTheme.dotClass}`} />
+                            <span className="hidden sm:inline font-bold tabular-nums shrink-0">
+                              {item.reservation_time}
+                            </span>
+                            <span className="truncate font-semibold">
+                              {item.mom_name}
+                              <span className="hidden lg:inline font-normal">
+                                {' '}— {getShortTreatmentName(item.treatment_name)}
                               </span>
-                              <span className="truncate">
-                                {item.mom_name} — {getShortTreatmentName(item.treatment_name)}
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onOpenNote(item);
-                              }}
-                              className={`shrink-0 p-0.5 rounded transition-colors ${
-                                hasNote
-                                  ? 'text-amber-600 bg-amber-100/90 hover:bg-amber-200'
-                                  : 'text-current/50 hover:text-current hover:bg-white/70'
-                              }`}
-                              title={hasNote ? `Note: ${item.notes}` : 'Tambah Note'}
-                              aria-label="Buka Note"
-                            >
-                              <StickyNote className="w-3 h-3" />
-                            </button>
+                            </span>
                           </div>
                         );
                       })}
 
                       {dayReservations.length > 2 && (
-                        <div className="text-[10px] font-semibold text-[#4eafde] pl-1">
-                          +{dayReservations.length - 2} more
+                        <div className="text-[9px] sm:text-[10px] font-bold text-[#16567d] pl-0.5 sm:pl-1">
+                          +{dayReservations.length - 2} lagi
                         </div>
                       )}
                     </div>
@@ -416,7 +378,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         {/* ==================== WEEK VIEW ==================== */}
         {viewType === 'week' && (
           <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-[#E4EBF0]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-px bg-[#E4EBF0]">
               {weekDays.map(({ date, dateStr }) => {
                 const dayReservations = reservationsByDate.get(dateStr) || [];
                 const resCount = dayReservations.length;
@@ -428,18 +390,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <div
                     key={dateStr}
                     onClick={() => handleDateClick(dateStr)}
-                    className={`p-3 min-h-[350px] flex flex-col cursor-pointer transition-colors ${
+                    className={`p-3 min-h-[160px] lg:min-h-[340px] flex flex-col cursor-pointer transition-colors ${
                       isSelected ? 'bg-[#f4fafc]' : 'bg-white hover:bg-[#f9fcfe]'
                     }`}
                   >
                     {/* Header */}
-                    <div className="pb-3 border-b border-[#E4EBF0] flex items-center justify-between">
+                    <div className="pb-2.5 border-b border-[#E4EBF0] flex items-center justify-between">
                       <div>
                         <div className="text-xs font-semibold text-[#647b8e] uppercase">
                           {INDONESIAN_DAYS[dayIndex]}
                         </div>
                         <div
-                          className={`text-lg font-bold mt-0.5 inline-block ${
+                          className={`text-base sm:text-lg font-bold mt-0.5 inline-block ${
                             isCurrentToday
                               ? 'px-2 py-0.5 rounded-lg bg-[#4eafde] text-white'
                               : 'text-[#223749]'
@@ -450,7 +412,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       </div>
 
                       {resCount > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#e8f5fb] text-[#16567d] border border-[#4eafde]/40">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#e8f5fb] text-[#16567d] border border-[#4eafde]/40 tabular-nums">
                           {resCount}
                         </span>
                       )}
@@ -459,13 +421,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {/* Events inside this day */}
                     <div className="mt-3 space-y-2 flex-1 overflow-y-auto">
                       {dayReservations.length === 0 ? (
-                        <div className="text-center py-8 text-xs text-[#9AA7B4]">
+                        <div className="text-center py-6 lg:py-8 text-xs text-[#9AA7B4]">
                           Tidak ada reservasi
                         </div>
                       ) : (
                         dayReservations.map((item) => {
                           const catTheme = getCategoryTheme(item.guest_category);
-                          const hasNote = Boolean(item.notes && item.notes.trim());
                           return (
                             <div
                               key={item.id}
@@ -473,40 +434,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 e.stopPropagation();
                                 onSelectReservation(item);
                               }}
-                              className={`p-2.5 rounded-xl border transition-colors text-left space-y-1.5 ${catTheme.cardClass}`}
+                              className={`p-2.5 rounded-xl border-2 transition-colors text-left space-y-1.5 ${catTheme.cardClass}`}
                             >
                               <div className="flex items-center justify-between gap-1 text-xs font-bold">
-                                <span className="tabular-nums">{item.reservation_time}</span>
+                                <span className={`px-2 py-0.5 rounded-md border tabular-nums ${catTheme.timeChipClass}`}>
+                                  {item.reservation_time}
+                                </span>
                                 <StatusBadge status={item.status} size="sm" />
                               </div>
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="text-sm font-semibold text-[#223749] truncate">
-                                  {item.mom_name}
-                                </div>
+                              <div className="text-sm font-bold text-[#223749] truncate">
+                                {item.mom_name}
                               </div>
-                              <div className="text-xs text-[#4F6272] truncate">
+                              <div className="text-xs font-medium text-[#4F6272] truncate">
                                 {item.treatment_name}
                               </div>
-                              <div className="text-[11px] text-[#647b8e]">
-                                Anak: {item.child_name}
-                              </div>
-                              <div className="pt-1 flex items-center justify-between gap-1 border-t border-black/5">
+                              <div className="pt-1 flex items-center justify-between gap-1 border-t border-black/10">
+                                <span className="text-[11px] text-[#4F6272] truncate">
+                                  Anak: {item.child_name}
+                                </span>
                                 <CategoryBadge category={item.guest_category} />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenNote(item);
-                                  }}
-                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                                    hasNote
-                                      ? 'bg-amber-100 text-amber-800 border border-amber-300/80 hover:bg-amber-200'
-                                      : 'bg-white/80 text-[#647b8e] border border-[#E4EBF0] hover:text-[#223749] hover:bg-white'
-                                  }`}
-                                >
-                                  <StickyNote className="w-3 h-3" />
-                                  <span>{hasNote ? 'Note' : '+ Note'}</span>
-                                </button>
                               </div>
                             </div>
                           );
@@ -522,10 +468,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         {/* ==================== DAY VIEW ==================== */}
         {viewType === 'day' && (
-          <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-6">
-            <div className="flex items-center justify-between pb-4 border-b border-[#E4EBF0]">
+          <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E4EBF0]">
               <div>
-                <h3 className="text-lg font-bold text-[#263746]">
+                <h3 className="text-base sm:text-lg font-bold text-[#263746]">
                   {formatFullIndonesianDate(selectedDateStr)}
                 </h3>
                 <p className="text-xs text-[#71808F] mt-0.5">
@@ -535,16 +481,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
               <button
                 onClick={handleOpenAddForCurrentDate}
-                className="px-3.5 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-xs self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Add for this date</span>
               </button>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-5 space-y-3">
               {selectedDateReservations.length === 0 ? (
-                <div className="text-center py-16">
+                <div className="text-center py-14">
                   <div className="w-12 h-12 rounded-2xl bg-[#f4fafc] border border-[#E4EBF0] flex items-center justify-center mx-auto text-[#647b8e]">
                     <CalendarIcon className="w-6 h-6 text-[#647b8e]" />
                   </div>
@@ -564,15 +510,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               ) : (
                 selectedDateReservations.map((item) => {
                   const catTheme = getCategoryTheme(item.guest_category);
-                  const hasNote = Boolean(item.notes && item.notes.trim());
                   return (
                     <div
                       key={item.id}
                       onClick={() => onSelectReservation(item)}
-                      className={`p-4 rounded-xl border hover:shadow-xs transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${catTheme.accentBorderClass} bg-white hover:bg-[#FAFDFE]`}
+                      className={`p-4 rounded-xl border-2 hover:shadow-xs transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${catTheme.accentBorderClass}`}
                     >
                       <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                        <div className={`px-3 py-2 rounded-xl font-bold text-base tabular-nums border shrink-0 ${catTheme.timeChipClass}`}>
+                        <div className={`px-3 py-2 rounded-xl font-bold text-sm sm:text-base tabular-nums border shrink-0 ${catTheme.timeChipClass}`}>
                           {item.reservation_time}
                         </div>
                         <div className="min-w-0">
@@ -595,23 +540,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenNote(item);
-                          }}
-                          className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
-                            hasNote
-                              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                              : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749] hover:border-[#4eafde]'
-                          }`}
-                        >
-                          <StickyNote className="w-3.5 h-3.5 text-amber-500" />
-                          <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
-                        </button>
                         <StatusBadge status={item.status} />
-                        <span className="text-xs text-[#4eafde] hover:text-[#3ea0cf] font-semibold">
+                        <span className="text-xs text-[#16567d] hover:underline font-semibold">
                           Detail &rarr;
                         </span>
                       </div>
@@ -666,7 +596,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               ) : (
                 selectedDateReservations.map((item) => {
                   const catTheme = getCategoryTheme(item.guest_category);
-                  const hasNote = Boolean(item.notes && item.notes.trim());
                   return (
                     <div
                       key={item.id}
@@ -674,7 +603,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         setIsDayPanelOpen(false);
                         onSelectReservation(item);
                       }}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer group ${catTheme.accentBorderClass} bg-white hover:bg-[#FAFDFE]`}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer group ${catTheme.accentBorderClass}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
@@ -695,26 +624,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         </span>
                       </div>
 
-                      <div className="text-[11px] text-[#647b8e] mt-2 pt-2 border-t border-[#E4EBF0]/70 flex items-center justify-between gap-2">
+                      <div className="text-[11px] text-[#647b8e] mt-2 pt-2 border-t border-black/10 flex items-center justify-between gap-2">
                         <span>Anak: {item.child_name} ({item.child_age})</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenNote(item);
-                            }}
-                            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
-                              hasNote
-                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                                : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749]'
-                            }`}
-                          >
-                            <StickyNote className="w-3 h-3 text-amber-500" />
-                            <span>{hasNote ? 'Lihat Note' : '+ Note'}</span>
-                          </button>
-                          <span className="text-[#4eafde] group-hover:underline font-semibold">Detail &rarr;</span>
-                        </div>
+                        <span className="text-[#16567d] group-hover:underline font-semibold">Detail &rarr;</span>
                       </div>
                     </div>
                   );

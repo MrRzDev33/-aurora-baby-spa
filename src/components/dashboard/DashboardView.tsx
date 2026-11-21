@@ -4,7 +4,6 @@ import {
   CalendarRange,
   Clock,
   Plus,
-  StickyNote,
   Users,
 } from 'lucide-react';
 import React from 'react';
@@ -18,7 +17,6 @@ interface DashboardViewProps {
   onOpenNewReservation: () => void;
   onNavigateToCalendar: () => void;
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
-  onOpenNote?: (reservation: ReservationWithTreatment) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -27,7 +25,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewReservation,
   onNavigateToCalendar,
   onSelectReservation,
-  onOpenNote,
 }) => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -169,7 +166,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="divide-y divide-[#E4EBF0]">
               {upcomingReservations.map((item) => {
                 const catTheme = getCategoryTheme(item.guest_category);
-                const hasNote = Boolean(item.notes && item.notes.trim());
                 return (
                   <div
                     key={item.id}
@@ -199,23 +195,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2.5 self-end sm:self-center">
-                      {onOpenNote && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenNote(item);
-                          }}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
-                            hasNote
-                              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                              : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0] hover:text-[#223749]'
-                          }`}
-                        >
-                          <StickyNote className="w-3.5 h-3.5 text-amber-500" />
-                          <span>{hasNote ? 'Note' : '+ Note'}</span>
-                        </button>
-                      )}
                       <StatusBadge status={item.status} size="sm" />
                       <span className="text-xs text-[#647b8e] group-hover:text-[#223749] hidden sm:inline">
                         Detail &rarr;
