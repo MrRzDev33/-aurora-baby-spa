@@ -1,17 +1,14 @@
 import {
-  AlertCircle,
   AlertTriangle,
   Check,
   CheckCircle2,
+  ChevronDown,
   Copy,
   Database,
   Edit2,
-  ExternalLink,
   Info,
   Plus,
   RefreshCw,
-  RotateCcw,
-  Sparkles,
   ToggleLeft,
   ToggleRight,
   Trash2,
@@ -34,6 +31,7 @@ interface SettingsViewProps {
   connectionStatus: {
     isConfigured: boolean;
     isConnected: boolean;
+    isChecking?: boolean;
     error?: string;
   };
   onRefreshData: () => Promise<void>;
@@ -65,7 +63,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
-  // Supabase Configuration State
+  // Supabase Configuration State (hidden/collapsed by default, clickable to edit)
+  const [isSupabaseExpanded, setIsSupabaseExpanded] = useState(false);
   const creds = getSupabaseCredentials();
   const [supabaseUrl, setSupabaseUrl] = useState(creds.url);
   const [supabaseKey, setSupabaseKey] = useState(creds.anonKey);
@@ -233,122 +232,136 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
           Settings
         </h2>
         <p className="text-xs sm:text-sm text-[#71808F] mt-0.5">
-          Konfigurasi sistem, manajemen katalog treatment, dan integrasi backend Supabase
+          Konfigurasi sistem dan manajemen katalog treatment Aurora Spa
         </p>
       </div>
 
-      {/* Section 0: Supabase Backend Connection */}
-      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6 space-y-4 sm:space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4EBF0]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#e8f5fb] text-[#16567d] flex items-center justify-center border border-[#4eafde]/40 shrink-0">
-              <Database className="w-5 h-5 text-[#4eafde]" />
+      {/* Section 0: Database Connection (Hidden by default, click to edit) */}
+      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsSupabaseExpanded((prev) => !prev)}
+          className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFDFE] transition-colors cursor-pointer"
+          aria-expanded={isSupabaseExpanded}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[#e8f5fb] text-[#16567d] flex items-center justify-center border border-[#4eafde]/40 shrink-0">
+              <Database className="w-4 h-4 text-[#4eafde]" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-[#223749]">
-                Supabase Database Connection
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-[#223749] truncate">
+                Pengaturan Koneksi Database
               </h3>
-              <p className="text-xs text-[#647b8e] mt-0.5">
-                Basis data utama dan persisten untuk seluruh data reservasi &amp; treatment
+              <p className="text-xs text-[#647b8e] mt-0.5 truncate">
+                {isSupabaseExpanded ? 'Klik untuk menyembunyikan form' : 'Klik untuk melihat atau mengedit koneksi'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {connectionStatus.isConnected ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Connected to Supabase
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Online
               </span>
-            ) : connectionStatus.isConfigured ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Connecting / Retrying...
+            ) : connectionStatus.isChecking ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Checking
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#f4fafc] text-[#16567d] border border-[#4eafde]/40">
-                <span className="w-2 h-2 rounded-full bg-[#4eafde]" />
-                Supabase Ready (Active Cache)
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Error
               </span>
             )}
+            <ChevronDown
+              className={`w-4 h-4 text-[#647b8e] transition-transform duration-200 ${
+                isSupabaseExpanded ? 'rotate-180' : ''
+              }`}
+            />
           </div>
-        </div>
+        </button>
 
-        {/* Supabase credentials form */}
-        <form onSubmit={handleSaveSupabaseConfig} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#223749] mb-1">
-                Supabase Project URL
-              </label>
-              <input
-                type="url"
-                value={supabaseUrl}
-                onChange={(e) => setSupabaseUrl(e.target.value)}
-                placeholder="https://your-project-id.supabase.co"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-xs sm:text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde]"
-              />
-            </div>
+        {isSupabaseExpanded && (
+          <div className="p-4 sm:p-6 pt-4 border-t border-[#E4EBF0] space-y-4 sm:space-y-5">
+            {/* Supabase credentials form */}
+            <form onSubmit={handleSaveSupabaseConfig} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#223749] mb-1">
+                    Project URL
+                  </label>
+                  <input
+                    type="url"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    placeholder="https://your-project-id.supabase.co"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-xs sm:text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde]"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#223749] mb-1">
-                Supabase Anon Key (Public Key)
-              </label>
-              <input
-                type="password"
-                value={supabaseKey}
-                onChange={(e) => setSupabaseKey(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-xs sm:text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde]"
-              />
+                <div>
+                  <label className="block text-xs font-semibold text-[#223749] mb-1">
+                    Anon Key (Public Key)
+                  </label>
+                  <input
+                    type="password"
+                    value={supabaseKey}
+                    onChange={(e) => setSupabaseKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-xs sm:text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSqlModal(true)}
+                    className="px-3 py-2 rounded-xl border border-[#E4EBF0] text-xs font-semibold text-[#245D87] hover:bg-[#F5FAFD] transition-colors flex items-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Lihat SQL Schema</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsTestingConnection(true);
+                      await onCheckConnection();
+                      await onRefreshData();
+                      setIsTestingConnection(false);
+                      onShowToast('Koneksi database diperiksa.');
+                    }}
+                    disabled={isTestingConnection}
+                    className="px-3.5 py-2 rounded-xl border border-[#E4EBF0] text-xs font-semibold text-[#71808F] hover:bg-[#F5FAFD] hover:text-[#263746] transition-colors flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isTestingConnection ? 'animate-spin' : ''}`} />
+                    <span>Tes Koneksi</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white text-xs font-bold transition-colors shadow-xs"
+                  >
+                    Simpan &amp; Hubungkan
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#f4fafc] border border-[#E4EBF0] text-xs text-[#647b8e]">
+              <Info className="w-4 h-4 text-[#4eafde] shrink-0 mt-0.5" />
+              <span>
+                Data tersimpan secara persisten menggunakan tabel <code>reservations</code> dan <code>treatments</code> dengan Row Level Security (RLS) dan sinkronisasi real-time diaktifkan.
+              </span>
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowSqlModal(true)}
-                className="px-3 py-2 rounded-xl border border-[#E4EBF0] text-xs font-semibold text-[#245D87] hover:bg-[#F5FAFD] transition-colors flex items-center gap-1.5"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>Lihat SQL Schema Supabase</span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsTestingConnection(true);
-                  await onCheckConnection();
-                  await onRefreshData();
-                  setIsTestingConnection(false);
-                  onShowToast('Koneksi Supabase diperiksa.');
-                }}
-                disabled={isTestingConnection}
-                className="px-3.5 py-2 rounded-xl border border-[#E4EBF0] text-xs font-semibold text-[#71808F] hover:bg-[#F5FAFD] hover:text-[#263746] transition-colors flex items-center gap-1.5"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isTestingConnection ? 'animate-spin' : ''}`} />
-                <span>Tes Koneksi</span>
-              </button>
-
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white text-xs font-bold transition-colors shadow-xs"
-              >
-                Simpan &amp; Hubungkan
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#f4fafc] border border-[#E4EBF0] text-xs text-[#647b8e]">
-          <Info className="w-4 h-4 text-[#4eafde] shrink-0 mt-0.5" />
-          <span>
-            Data tersimpan di Supabase secara persisten menggunakan tabel <code>reservations</code> dan <code>treatments</code> dengan Row Level Security (RLS) dan Supabase Realtime diaktifkan.
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Section 1: Treatment Management */}

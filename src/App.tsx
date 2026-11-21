@@ -209,6 +209,19 @@ export default function App() {
               onCheckConnection={checkConnection}
             />
           )}
+
+          {/* Copyright Footer */}
+          <footer className="mt-10 pt-5 border-t border-[#E4EBF0]/80 text-center text-xs text-[#647b8e]">
+            <span>Copyright &copy; {new Date().getFullYear()} </span>
+            <a
+              href="https://mrreza.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#16567d] hover:text-[#4eafde] underline underline-offset-2 transition-colors"
+            >
+              Reza
+            </a>
+          </footer>
         </main>
       </div>
 

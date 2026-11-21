@@ -1,4 +1,4 @@
-import { Calendar, Database, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, Calendar, Loader2, Plus } from 'lucide-react';
 import React from 'react';
 import { formatFullIndonesianDate, getCurrentDateString } from '../../utils/dateUtils';
 import { AuroraLogo } from '../ui/AuroraLogo';
@@ -14,6 +14,7 @@ interface HeaderProps {
   connectionStatus?: {
     isConfigured: boolean;
     isConnected: boolean;
+    isChecking?: boolean;
     error?: string;
   };
 }
@@ -47,6 +48,10 @@ export const Header: React.FC<HeaderProps> = ({
   const todayStr = getCurrentDateString();
   const formattedToday = formatFullIndonesianDate(todayStr);
 
+  const isChecking = Boolean(connectionStatus?.isChecking);
+  const isOnline = Boolean(connectionStatus?.isConnected);
+  const isError = Boolean(connectionStatus && !isChecking && !isOnline);
+
   return (
     <header className="sticky top-0 z-20 h-14 md:h-20 bg-white/95 backdrop-blur-xs border-b border-[#E4EBF0] px-4 sm:px-8 flex items-center justify-between gap-3">
       {/* Left: Aurora Logo (HP) + Page Title */}
@@ -61,38 +66,35 @@ export const Header: React.FC<HeaderProps> = ({
               {titles[currentTab].title}
             </h1>
 
-            {/* Supabase Status Pill (Tablet & Desktop) */}
+            {/* Connection Status Pill (Tablet & Desktop): Online / Error */}
             {connectionStatus && (
               <span
                 className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                  connectionStatus.isConnected
+                  isOnline
                     ? 'bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]'
-                    : connectionStatus.isConfigured
-                    ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
-                    : 'bg-[#e8f5fb] text-[#16567d] border-[#4eafde]/40'
+                    : isError
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
                 }`}
                 title={
-                  connectionStatus.isConnected
-                    ? 'Terhubung dengan database Supabase'
-                    : 'Mode database persisten aktif'
+                  isOnline
+                    ? 'Sistem terhubung (Online)'
+                    : isError
+                    ? connectionStatus.error || 'Terjadi gangguan koneksi database'
+                    : 'Memeriksa koneksi...'
                 }
               >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    connectionStatus.isConnected
-                      ? 'bg-emerald-500'
-                      : connectionStatus.isConfigured
-                      ? 'bg-amber-500'
-                      : 'bg-[#4eafde]'
-                  }`}
-                />
-                <Database className="w-3 h-3 opacity-70" />
+                {isError ? (
+                  <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
+                ) : (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+                    }`}
+                  />
+                )}
                 <span>
-                  {connectionStatus.isConnected
-                    ? 'Supabase'
-                    : connectionStatus.isConfigured
-                    ? 'Connecting'
-                    : 'Supabase Ready'}
+                  {isOnline ? 'Online' : isError ? 'Status Error' : 'Connecting...'}
                 </span>
               </span>
             )}
@@ -113,27 +115,28 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Compact Supabase badge on HP */}
+        {/* Compact Online / Error badge on HP */}
         {connectionStatus && (
           <span
-            className={`md:hidden inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold border ${
-              connectionStatus.isConnected
+            className={`md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+              isOnline
                 ? 'bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]'
-                : connectionStatus.isConfigured
-                ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
-                : 'bg-[#e8f5fb] text-[#16567d] border-[#4eafde]/40'
+                : isError
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
             }`}
+            title={isError ? connectionStatus.error || 'Koneksi bermasalah' : 'Online'}
           >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                connectionStatus.isConnected
-                  ? 'bg-emerald-500'
-                  : connectionStatus.isConfigured
-                  ? 'bg-amber-500'
-                  : 'bg-[#4eafde]'
-              }`}
-            />
-            <span>{connectionStatus.isConnected ? 'Supabase' : 'Sync'}</span>
+            {isError ? (
+              <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
+            ) : (
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+                }`}
+              />
+            )}
+            <span>{isOnline ? 'Online' : isError ? 'Error' : 'Sync...'}</span>
           </span>
         )}
 
@@ -142,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{formattedToday}</span>
         </div>
 
-        {/* Desktop & Tablet Header CTA (Hidden on HP since center + is in bottom footer) */}
+        {/* Desktop & Tablet Header CTA */}
         <button
           onClick={onOpenNewReservation}
           className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs"

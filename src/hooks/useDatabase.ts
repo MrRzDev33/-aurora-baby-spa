@@ -23,10 +23,12 @@ export function useDatabase() {
   const [connectionStatus, setConnectionStatus] = useState<{
     isConfigured: boolean;
     isConnected: boolean;
+    isChecking?: boolean;
     error?: string;
   }>({
-    isConfigured: false,
+    isConfigured: getSupabaseCredentials().isConfigured,
     isConnected: false,
+    isChecking: true,
   });
 
   const refreshData = useCallback(async (customMessage?: string) => {
@@ -74,14 +76,18 @@ export function useDatabase() {
       setConnectionStatus({
         isConfigured: false,
         isConnected: false,
+        isChecking: false,
+        error: 'Konfigurasi database belum diatur.',
       });
       return;
     }
 
+    setConnectionStatus((prev) => ({ ...prev, isChecking: true }));
     const res = await reservationService.checkConnection();
     setConnectionStatus({
       isConfigured: true,
       isConnected: res.isConnected,
+      isChecking: false,
       error: res.error,
     });
   }, []);
