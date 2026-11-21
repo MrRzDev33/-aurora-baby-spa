@@ -157,8 +157,10 @@ export default function App() {
 
         {/* View Content */}
         <main
-          className={`flex-1 p-4 sm:p-8 overflow-y-auto ${
-            currentTab === 'calendar' || currentTab === 'reservations' ? 'pb-28 sm:pb-28' : ''
+          className={`flex-1 p-3.5 sm:p-6 md:p-8 overflow-y-auto ${
+            currentTab === 'calendar' || currentTab === 'reservations'
+              ? 'pb-36 md:pb-24'
+              : 'pb-24 md:pb-8'
           }`}
         >
           {currentTab === 'dashboard' && (

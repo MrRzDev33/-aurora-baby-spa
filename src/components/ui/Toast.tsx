@@ -24,7 +24,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   if (!toast) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 transition-all transform duration-200">
+    <div className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 transition-all transform duration-200">
       <div
         className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-sm ${
           toast.type === 'success'

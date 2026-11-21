@@ -1,8 +1,10 @@
 import {
+  ChevronDown,
   Edit2,
   Plus,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   Trash2,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
@@ -45,6 +47,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [treatmentFilter, setTreatmentFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recently_added' | 'nearest' | 'newest_first' | 'oldest_first'>('recently_added');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const todayStr = getCurrentDateString();
 
@@ -184,22 +187,29 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
     statusFilter !== 'all' ||
     treatmentFilter !== 'all';
 
+  const activeAdvancedFilterCount =
+    (categoryFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (treatmentFilter !== 'all' ? 1 : 0) +
+    (dateFilter === 'tomorrow' || dateFilter === 'custom' ? 1 : 0) +
+    (sortOrder !== 'recently_added' ? 1 : 0);
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto">
       {/* Top Title & Quick Add */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#223749] tracking-tight">
+          <h2 className="text-lg sm:text-2xl font-bold text-[#223749] tracking-tight">
             Reservations
           </h2>
-          <p className="text-sm text-[#647b8e] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#647b8e] mt-0.5">
             Daftar lengkap seluruh jadwal reservasi spa ({sortedReservations.length} data)
           </p>
         </div>
 
         <button
           onClick={onOpenNewReservation}
-          className="px-4 py-2.5 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs flex items-center gap-2 self-start sm:self-auto"
+          className="hidden md:flex px-4 py-2.5 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>+ New Reservation</span>
@@ -244,21 +254,51 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-[#E4EBF0] shadow-xs space-y-4">
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#647b8e] absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari berdasarkan Nama Moms, Anak, No. WhatsApp, atau ID Reservasi..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all"
-          />
+      <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E4EBF0] shadow-xs space-y-3 sm:space-y-4">
+        {/* Search Input + Mobile Filter Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-[#647b8e] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari Nama Moms, Anak, WA, atau ID..."
+              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E4EBF0] bg-white text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            className={`md:hidden min-h-[42px] px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors ${
+              showMobileFilters || activeAdvancedFilterCount > 0
+                ? 'bg-[#e8f5fb] text-[#16567d] border-[#4eafde]/60'
+                : 'bg-[#FAFDFE] text-[#647b8e] border-[#E4EBF0]'
+            }`}
+            aria-expanded={showMobileFilters}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Filter</span>
+            {activeAdvancedFilterCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-[#4eafde] text-white text-[10px] font-bold leading-none">
+                {activeAdvancedFilterCount}
+              </span>
+            )}
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                showMobileFilters ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
         </div>
 
-        {/* Filter Controls Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+        {/* Filter Controls Row (Collapsed by default on HP, always open on Tablet/Desktop) */}
+        <div
+          className={`${
+            showMobileFilters ? 'grid' : 'hidden'
+          } md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1`}
+        >
           {/* Date Filter */}
           <div>
             <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">

@@ -226,19 +226,19 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-5 sm:space-y-8 max-w-4xl mx-auto">
       {/* Title */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-[#263746] tracking-tight">
+        <h2 className="text-lg sm:text-2xl font-bold text-[#263746] tracking-tight">
           Settings
         </h2>
-        <p className="text-sm text-[#71808F] mt-0.5">
+        <p className="text-xs sm:text-sm text-[#71808F] mt-0.5">
           Konfigurasi sistem, manajemen katalog treatment, dan integrasi backend Supabase
         </p>
       </div>
 
       {/* Section 0: Supabase Backend Connection */}
-      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-6 space-y-5">
+      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6 space-y-4 sm:space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4EBF0]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#e8f5fb] text-[#16567d] flex items-center justify-center border border-[#4eafde]/40 shrink-0">
@@ -352,7 +352,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
       </div>
 
       {/* Section 1: Treatment Management */}
-      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-6 space-y-6">
+      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6 space-y-5 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4EBF0]">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-[#223749]">
@@ -531,7 +531,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
       </div>
 
       {/* Section 2: Guest Categories (Fixed MVP) */}
-      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6 space-y-4">
         <div>
           <h3 className="text-base font-bold text-[#263746]">
             Guest Categories
@@ -572,7 +572,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
       </div>
 
       {/* Section 3: Data & Reservasi Management */}
-      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#E4EBF0] shadow-xs p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4EBF0]">
           <div>
             <h3 className="text-base font-bold text-[#223749]">

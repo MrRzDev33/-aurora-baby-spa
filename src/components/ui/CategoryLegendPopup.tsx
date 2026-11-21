@@ -34,16 +34,16 @@ export const CategoryLegendPopup: React.FC<CategoryLegendPopupProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Align cleanly in the bottom-left of the visible content area across HP, Tablet, and Desktop
+  // Align cleanly in the bottom-left above the HP bottom footer, and in the bottom-left of content area on Tablet/Desktop
   const leftOffsetClass = isSidebarCollapsed
     ? 'left-3 sm:left-4 md:left-[6rem]'
     : 'left-3 sm:left-4 md:left-[17rem]';
 
   return (
-    <div className={`fixed bottom-3 sm:bottom-5 z-30 transition-all duration-200 ${leftOffsetClass}`}>
+    <div className={`fixed bottom-[78px] md:bottom-5 z-30 transition-all duration-200 ${leftOffsetClass}`}>
       {isOpen ? (
         <div
-          className="w-[228px] sm:w-[252px] rounded-2xl border border-[#D8E7F1] bg-white/95 backdrop-blur-md shadow-xl overflow-hidden animate-popup-in"
+          className="w-[214px] sm:w-[252px] rounded-2xl border border-[#D8E7F1] bg-white/95 backdrop-blur-md shadow-xl overflow-hidden animate-popup-in"
           role="region"
           aria-label="Catatan Warna Kategori Tamu"
         >
