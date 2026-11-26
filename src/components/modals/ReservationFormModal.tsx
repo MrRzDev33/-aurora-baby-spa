@@ -90,9 +90,10 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setWhatsapp(initialData.whatsapp);
         setGuestCategory(initialData.guest_category);
         setGuestSource(
-          (GUEST_SOURCES as readonly string[]).includes(initialData.guest_source)
+          initialData.guest_source &&
+            (GUEST_SOURCES as readonly string[]).includes(initialData.guest_source)
             ? initialData.guest_source
-            : 'Tamu reguler'
+            : ''
         );
         setReservationDate(initialData.reservation_date);
         setReservationTime(initialData.reservation_time);
@@ -159,7 +160,8 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
       errs.guest_category = 'Kategori Tamu wajib dipilih.';
     }
 
-    if (!guestSource || !(GUEST_SOURCES as readonly string[]).includes(guestSource)) {
+    const isLegacyNoSource = isEditing && !initialData?.guest_source && guestSource === '';
+    if (!isLegacyNoSource && (!guestSource || !(GUEST_SOURCES as readonly string[]).includes(guestSource))) {
       errs.guest_source = 'Sumber Tamu wajib dipilih dari daftar yang tersedia.';
     }
 
@@ -185,7 +187,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || !guestSource) {
+    if (!validate()) {
       return;
     }
 
@@ -404,12 +406,15 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
             {/* 5b. Sumber Tamu (Strict Select Only) */}
             <div>
               <label className="block text-xs font-semibold text-[#223749] mb-1">
-                Sumber Tamu <span className="text-red-500">*</span>
+                Sumber Tamu{' '}
+                {!(isEditing && !initialData?.guest_source) && (
+                  <span className="text-red-500">*</span>
+                )}
               </label>
               <select
                 value={guestSource}
                 onChange={(e) => {
-                  setGuestSource(e.target.value as GuestSource);
+                  setGuestSource(e.target.value as GuestSource | '');
                   if (errors.guest_source) {
                     setErrors((prev) => ({ ...prev, guest_source: undefined }));
                   }
@@ -418,9 +423,13 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
                   errors.guest_source ? 'border-red-400' : 'border-[#E4EBF0]'
                 }`}
               >
-                <option value="" disabled>
-                  -- Pilih Sumber Tamu --
-                </option>
+                {isEditing && !initialData?.guest_source ? (
+                  <option value="">-- Tanpa Sumber (Data Sebelumnya) --</option>
+                ) : (
+                  <option value="" disabled>
+                    -- Pilih Sumber Tamu --
+                  </option>
+                )}
                 {GUEST_SOURCES.map((src) => (
                   <option key={src} value={src}>
                     {src}

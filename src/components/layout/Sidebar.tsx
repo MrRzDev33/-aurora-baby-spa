@@ -3,15 +3,15 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Layers,
   LayoutDashboard,
   Plus,
   Settings,
-  Sparkles,
 } from 'lucide-react';
 import React from 'react';
 import { AuroraLogo } from '../ui/AuroraLogo';
 
-export type NavTab = 'dashboard' | 'calendar' | 'reservations' | 'jembol_visit' | 'settings';
+export type NavTab = 'dashboard' | 'calendar' | 'reservations' | 'data' | 'settings';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -40,14 +40,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendar', mobileLabel: 'Calendar', icon: CalendarDays },
     { id: 'reservations', label: 'Reservations', mobileLabel: 'Reservasi', icon: ClipboardList },
-    { id: 'jembol_visit', label: 'Jembol & Visit', mobileLabel: 'Jembol', icon: Sparkles },
+    { id: 'data', label: 'Data', mobileLabel: 'Data', icon: Layers },
     { id: 'settings', label: 'Settings', mobileLabel: 'Settings', icon: Settings },
   ];
 
   // 4 primary routes in HP bottom footer (+ center New Data button = 5 clean slots)
   // Settings is accessible via compact gear button in HP Header
   const mobileBottomLeft = navItems.slice(0, 2); // Home, Calendar
-  const mobileBottomRight = navItems.slice(2, 4); // Reservasi, Jembol
+  const mobileBottomRight = navItems.slice(2, 4); // Reservasi, Data
 
   const handleNavClick = (tab: NavTab) => {
     onSelectTab(tab);

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { CalendarView } from './components/calendar/CalendarView';
 import { DashboardView } from './components/dashboard/DashboardView';
-import { JembolVisitView } from './components/jembolVisit/JembolVisitView';
+import { DataCategoryTab, DataView } from './components/data/DataView';
 import { Header } from './components/layout/Header';
 import { NavTab, Sidebar } from './components/layout/Sidebar';
 import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationModal';
@@ -60,7 +60,8 @@ export default function App() {
 
   // Navigation tab
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
-  const [jembolVisitInitialTab, setJembolVisitInitialTab] = useState<'jembol' | 'visit'>('jembol');
+  const [dataInitialCategory, setDataInitialCategory] = useState<DataCategoryTab>('menu');
+  const [dataNavSignal, setDataNavSignal] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -272,9 +273,18 @@ export default function App() {
     }
   };
 
-  const navigateToJembolVisit = (subTab: 'jembol' | 'visit' = 'jembol') => {
-    setJembolVisitInitialTab(subTab);
-    setCurrentTab('jembol_visit');
+  const handleSelectNavTab = (tab: NavTab) => {
+    if (tab === 'data') {
+      setDataInitialCategory('menu');
+      setDataNavSignal((n) => n + 1);
+    }
+    setCurrentTab(tab);
+  };
+
+  const navigateToData = (subTab: DataCategoryTab = 'menu') => {
+    setDataInitialCategory(subTab);
+    setDataNavSignal((n) => n + 1);
+    setCurrentTab('data');
   };
 
   return (
@@ -282,7 +292,7 @@ export default function App() {
       {/* Sidebar */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectNavTab}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isMobileOpen={isMobileMenuOpen}
@@ -325,7 +335,7 @@ export default function App() {
               onOpenNewData={handleOpenNewDataChooser}
               onNavigateToCalendar={() => setCurrentTab('calendar')}
               onNavigateToReservations={() => setCurrentTab('reservations')}
-              onNavigateToJembolVisit={navigateToJembolVisit}
+              onNavigateToData={navigateToData}
               onSelectReservation={handleSelectReservation}
               onSelectJembol={handleSelectJembol}
               onSelectVisit={handleSelectVisit}
@@ -352,14 +362,17 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'jembol_visit' && (
-            <JembolVisitView
+          {currentTab === 'data' && (
+            <DataView
+              reservations={reservations}
               jembolRecords={jembolRecords}
               visitRecords={visitRecords}
               missingTables={missingJembolVisitTables}
-              initialSubTab={jembolVisitInitialTab}
+              initialCategory={dataInitialCategory}
+              navSignal={dataNavSignal}
               onOpenNewJembol={handleOpenNewJembol}
               onOpenNewVisit={handleOpenNewVisit}
+              onSelectReservation={handleSelectReservation}
               onSelectJembol={handleSelectJembol}
               onEditJembol={handleStartEditJembol}
               onDeleteJembol={handleStartDeleteJembol}

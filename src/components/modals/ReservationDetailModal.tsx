@@ -183,9 +183,15 @@ export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
               <span className="font-medium text-xs text-[#647b8e] shrink-0">
                 Sumber Tamu
               </span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-[#f4fafc] text-[#16567d] border border-[#4eafde]/30 text-right">
-                {reservation.guest_source || 'Tamu reguler'}
-              </span>
+              {reservation.guest_source ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-[#f4fafc] text-[#16567d] border border-[#4eafde]/30 text-right">
+                  {reservation.guest_source}
+                </span>
+              ) : (
+                <span className="text-xs text-[#9AA7B4] italic text-right">
+                  Tanpa sumber
+                </span>
+              )}
             </div>
 
             {/* Catatan / Note */}

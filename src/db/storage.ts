@@ -392,7 +392,7 @@ class DatabaseService {
 
     return raw.map((r) => ({
       ...r,
-      guest_source: r.guest_source || 'Tamu reguler',
+      guest_source: r.guest_source || '',
       status: (r.status as string) === 'Rescheduled' ? 'Pending' : r.status,
       treatment_name: treatmentMap.get(r.treatment_id) || 'Treatment Dihapus',
     }));

@@ -29,6 +29,7 @@ interface JembolVisitViewProps {
     visitTableMissing: boolean;
   };
   initialSubTab?: 'jembol' | 'visit';
+  hideTabSwitcher?: boolean;
   onOpenNewJembol: () => void;
   onOpenNewVisit: () => void;
   onSelectJembol: (record: JembolRecord) => void;
@@ -45,6 +46,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
   visitRecords,
   missingTables,
   initialSubTab = 'jembol',
+  hideTabSwitcher = false,
   onOpenNewJembol,
   onOpenNewVisit,
   onSelectJembol,
@@ -226,10 +228,16 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg sm:text-2xl font-bold text-[#223749] tracking-tight">
-            Data Jembol &amp; Visit
+            {hideTabSwitcher
+              ? activeTab === 'jembol'
+                ? 'Data Jembol'
+                : 'Data Visit'
+              : 'Data Jembol & Visit'}
           </h2>
           <p className="text-xs sm:text-sm text-[#647b8e] mt-0.5">
-            Kelola data jemput bola (Visit Aja, Trial Treatment, &amp; Ambil Voucher) serta kunjungan tamu
+            {hideTabSwitcher && activeTab === 'visit'
+              ? 'Kelola data kunjungan tamu & kesan pesan'
+              : 'Kelola data jemput bola (Visit Aja, Trial Treatment, & Ambil Voucher) serta kunjungan tamu'}
           </p>
         </div>
 
@@ -271,6 +279,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
       )}
 
       {/* Main Sub-Tab Switcher: Data Jembol | Data Visit */}
+      {!hideTabSwitcher && (
       <div className="p-1.5 bg-white border border-[#E4EBF0] rounded-2xl shadow-xs grid grid-cols-2 gap-1.5 max-w-md">
         <button
           type="button"
@@ -316,6 +325,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
           </span>
         </button>
       </div>
+      )}
 
       {/* ==================== SUMMARY CARDS ==================== */}
       {activeTab === 'jembol' ? (

@@ -29,6 +29,7 @@ import {
   isInCurrentWeek,
   isToday,
 } from '../../utils/dateUtils';
+import { DataCategoryTab } from '../data/DataView';
 import { CategoryBadge, StatusBadge } from '../ui/StatusBadge';
 
 interface DashboardViewProps {
@@ -40,7 +41,7 @@ interface DashboardViewProps {
   onOpenNewData: () => void;
   onNavigateToCalendar: () => void;
   onNavigateToReservations: () => void;
-  onNavigateToJembolVisit: (subTab?: 'jembol' | 'visit') => void;
+  onNavigateToData: (subTab?: DataCategoryTab) => void;
   onSelectReservation: (reservation: ReservationWithTreatment) => void;
   onSelectJembol: (record: JembolRecord) => void;
   onSelectVisit: (record: VisitRecord) => void;
@@ -55,7 +56,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewData,
   onNavigateToCalendar,
   onNavigateToReservations,
-  onNavigateToJembolVisit,
+  onNavigateToData,
   onSelectReservation,
   onSelectJembol,
   onSelectVisit,
@@ -126,8 +127,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       if (!matchesHomePeriod(r.reservation_date)) return false;
 
-      if (sourceFilter !== 'all' && (r.guest_source || 'Tamu reguler') !== sourceFilter) {
-        return false;
+      if (sourceFilter !== 'all') {
+        if (sourceFilter === '__empty__') {
+          if (r.guest_source) return false;
+        } else if (r.guest_source !== sourceFilter) {
+          return false;
+        }
       }
 
       if (statusFilter !== 'all' && r.status !== statusFilter) {
@@ -578,6 +583,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {src}
                   </option>
                 ))}
+                <option value="__empty__">Tanpa Sumber (Data Lama)</option>
               </select>
             </div>
 
@@ -836,7 +842,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onNavigateToJembolVisit('jembol');
+                onNavigateToData('jembol');
               }}
               className="text-xs font-bold text-[#D97706] hover:underline shrink-0"
             >
@@ -907,7 +913,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onNavigateToJembolVisit('visit');
+                onNavigateToData('visit');
               }}
               className="text-xs font-bold text-[#0D9488] hover:underline shrink-0"
             >
@@ -989,8 +995,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             type="button"
             onClick={() => {
               if (homeListTab === 'reservations') onNavigateToReservations();
-              else if (homeListTab === 'jembol') onNavigateToJembolVisit('jembol');
-              else onNavigateToJembolVisit('visit');
+              else if (homeListTab === 'jembol') onNavigateToData('jembol');
+              else onNavigateToData('visit');
             }}
             className="text-xs font-semibold text-[#4eafde] hover:text-[#3ea0cf] hover:underline self-end md:self-auto"
           >
@@ -1056,7 +1062,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 </span>
                               </div>
                               <div className="text-xs text-[#647b8e] mt-0.5 truncate">
-                                {item.treatment_name} · {formatShortDate(item.reservation_date)} · {item.guest_source || 'Tamu reguler'}
+                                {item.treatment_name} · {formatShortDate(item.reservation_date)} · {item.guest_source || 'Tanpa sumber'}
                               </div>
                             </div>
                           </div>
@@ -1165,7 +1171,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="pt-4 mt-2 border-t border-[#E4EBF0] text-center">
                       <button
                         type="button"
-                        onClick={() => onNavigateToJembolVisit('jembol')}
+                        onClick={() => onNavigateToData('jembol')}
                         className="px-4 py-2 rounded-xl bg-[#FFFBEB] hover:bg-[#FEF3C7] border border-[#FDE68A] text-xs font-bold text-[#92400E] transition-colors"
                       >
                         Lihat semua {filteredJembolRecords.length} Data Jembol &rarr;
@@ -1236,7 +1242,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="pt-4 mt-2 border-t border-[#E4EBF0] text-center">
                       <button
                         type="button"
-                        onClick={() => onNavigateToJembolVisit('visit')}
+                        onClick={() => onNavigateToData('visit')}
                         className="px-4 py-2 rounded-xl bg-[#F0FDFA] hover:bg-[#CCFBF1] border border-[#99F6E4] text-xs font-bold text-[#0F766E] transition-colors"
                       >
                         Lihat semua {filteredVisitRecords.length} Data Visit &rarr;

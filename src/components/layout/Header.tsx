@@ -41,9 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
       title: 'Reservations',
       subtitle: 'Daftar lengkap seluruh data reservasi spa',
     },
-    jembol_visit: {
-      title: 'Jembol & Visit',
-      subtitle: 'Data jemput bola (Visit Aja, Trial Treatment, Ambil Voucher) & kunjungan',
+    data: {
+      title: 'Data',
+      subtitle: 'Pilih Data Jembol, Data Visit, atau Rekapan Data Sumber Tamu',
     },
     settings: {
       title: 'Settings',

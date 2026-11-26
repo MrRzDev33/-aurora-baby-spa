@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.reservations (
     child_age TEXT NOT NULL,
     whatsapp TEXT NOT NULL,
     guest_category TEXT NOT NULL,
-    guest_source TEXT NOT NULL DEFAULT 'Tamu reguler',
+    guest_source TEXT DEFAULT '',
     reservation_date DATE NOT NULL,
     reservation_time TIME NOT NULL,
     treatment_id UUID NOT NULL REFERENCES public.treatments(id) ON DELETE RESTRICT,
@@ -34,9 +34,11 @@ CREATE TABLE IF NOT EXISTS public.reservations (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Pastikan kolom notes dan guest_source tersedia pada database yang sudah ada
+-- Pastikan kolom notes dan guest_source tersedia pada database yang sudah ada (data lama boleh kosong)
 ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
-ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS guest_source TEXT NOT NULL DEFAULT 'Tamu reguler';
+ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS guest_source TEXT DEFAULT '';
+ALTER TABLE public.reservations ALTER COLUMN guest_source DROP NOT NULL;
+ALTER TABLE public.reservations ALTER COLUMN guest_source SET DEFAULT '';
 
 -- 4. JEMBOL RECORDS TABLE (Visit Aja, Trial Treatment, & Ambil Voucher)
 CREATE TABLE IF NOT EXISTS public.jembol_records (

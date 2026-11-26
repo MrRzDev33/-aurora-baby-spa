@@ -8,6 +8,8 @@ export const GUEST_SOURCES = [
   'Voucher jembol',
   'Voucher visit',
   'Voucher Moms Treatment',
+  'Affiliate',
+  'Barter Influencer',
 ] as const;
 
 export type GuestSource = (typeof GUEST_SOURCES)[number];
@@ -37,7 +39,7 @@ export interface Reservation {
   child_age: string;
   whatsapp: string;
   guest_category: GuestCategory;
-  guest_source: GuestSource;
+  guest_source?: GuestSource | '';
   reservation_date: string; // YYYY-MM-DD
   reservation_time: string; // HH:mm (24-hour)
   treatment_id: string;

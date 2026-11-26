@@ -97,11 +97,11 @@ export function isNotesColumnMissing(): boolean {
   return supabaseNotesSupported === false;
 }
 
-function normalizeGuestSource(val: unknown): GuestSource {
+function normalizeGuestSource(val: unknown): GuestSource | '' {
   if (typeof val === 'string' && (GUEST_SOURCES as readonly string[]).includes(val)) {
     return val as GuestSource;
   }
-  return 'Tamu reguler';
+  return '';
 }
 
 function normalizeStatus(val: unknown): ReservationStatus {
@@ -144,7 +144,7 @@ function setLocalNote(id: string, note: string): void {
   }
 }
 
-function getLocalGuestSourcesMap(): Record<string, GuestSource> {
+function getLocalGuestSourcesMap(): Record<string, GuestSource | ''> {
   if (typeof window === 'undefined') return {};
   try {
     const raw = localStorage.getItem(LOCAL_STORE_GUEST_SOURCES);
@@ -154,11 +154,15 @@ function getLocalGuestSourcesMap(): Record<string, GuestSource> {
   }
 }
 
-function setLocalGuestSource(id: string, source: GuestSource): void {
+function setLocalGuestSource(id: string, source: GuestSource | ''): void {
   if (typeof window === 'undefined') return;
   try {
     const map = getLocalGuestSourcesMap();
-    map[id] = source;
+    if (source) {
+      map[id] = source;
+    } else {
+      delete map[id];
+    }
     localStorage.setItem(LOCAL_STORE_GUEST_SOURCES, JSON.stringify(map));
   } catch {
     // Ignore storage errors
@@ -871,9 +875,10 @@ export const reservationService = {
       local[idx] = {
         ...local[idx],
         ...updates,
-        guest_source: updates.guest_source
-          ? normalizeGuestSource(updates.guest_source)
-          : normalizeGuestSource(local[idx].guest_source),
+        guest_source:
+          updates.guest_source !== undefined
+            ? normalizeGuestSource(updates.guest_source)
+            : normalizeGuestSource(local[idx].guest_source),
         treatment_name: trt?.name || local[idx].treatment_name,
         updated_at: new Date().toISOString(),
       };

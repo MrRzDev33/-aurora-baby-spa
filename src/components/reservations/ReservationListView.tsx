@@ -105,7 +105,11 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
 
       // 3b. Guest Source Filter
       if (sourceFilter !== 'all') {
-        if ((r.guest_source || 'Tamu reguler') !== sourceFilter) return false;
+        if (sourceFilter === '__empty__') {
+          if (r.guest_source) return false;
+        } else if (r.guest_source !== sourceFilter) {
+          return false;
+        }
       }
 
       // 4. Status Filter
@@ -420,6 +424,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                   {src}
                 </option>
               ))}
+              <option value="__empty__">Tanpa Sumber (Data Lama)</option>
             </select>
           </div>
 
@@ -606,7 +611,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                           <div className="flex flex-col items-start gap-1">
                             <CategoryBadge category={item.guest_category} />
                             <span className="text-[11px] text-[#647b8e] font-medium">
-                              {item.guest_source || 'Tamu reguler'}
+                              {item.guest_source || 'Tanpa sumber'}
                             </span>
                           </div>
                         </td>
@@ -691,7 +696,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                         {item.treatment_name}
                       </div>
                       <div className="text-[11px] text-[#647b8e] mt-0.5">
-                        Sumber: <span className="font-semibold text-[#223749]">{item.guest_source || 'Tamu reguler'}</span>
+                        Sumber: <span className="font-semibold text-[#223749]">{item.guest_source || 'Tanpa sumber'}</span>
                       </div>
                     </div>
 
