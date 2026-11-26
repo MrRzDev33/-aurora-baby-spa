@@ -15,7 +15,7 @@ const CATEGORY_NOTES: {
   {
     category: 'Trial',
     colorName: 'Biru',
-    description: 'Tamu baru / sesi percobaan',
+    description: 'Sesi percobaan',
   },
   {
     category: 'Pelanggan',

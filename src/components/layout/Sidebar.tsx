@@ -6,11 +6,12 @@ import {
   LayoutDashboard,
   Plus,
   Settings,
+  Sparkles,
 } from 'lucide-react';
 import React from 'react';
 import { AuroraLogo } from '../ui/AuroraLogo';
 
-export type NavTab = 'dashboard' | 'calendar' | 'reservations' | 'settings';
+export type NavTab = 'dashboard' | 'calendar' | 'reservations' | 'jembol_visit' | 'settings';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -19,7 +20,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
-  onOpenNewReservation: () => void;
+  onOpenNewData: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,7 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   onCloseMobile,
-  onOpenNewReservation,
+  onOpenNewData,
 }) => {
   const navItems: {
     id: NavTab;
@@ -39,8 +40,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', mobileLabel: 'Home', icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendar', mobileLabel: 'Calendar', icon: CalendarDays },
     { id: 'reservations', label: 'Reservations', mobileLabel: 'Reservasi', icon: ClipboardList },
+    { id: 'jembol_visit', label: 'Jembol & Visit', mobileLabel: 'Jembol', icon: Sparkles },
     { id: 'settings', label: 'Settings', mobileLabel: 'Settings', icon: Settings },
   ];
+
+  // 4 primary routes in HP bottom footer (+ center New Data button = 5 clean slots)
+  // Settings is accessible via compact gear button in HP Header
+  const mobileBottomLeft = navItems.slice(0, 2); // Home, Calendar
+  const mobileBottomRight = navItems.slice(2, 4); // Reservasi, Jembol
 
   const handleNavClick = (tab: NavTab) => {
     onSelectTab(tab);
@@ -90,11 +97,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed && (
           <div className="p-4 pb-2">
             <button
-              onClick={onOpenNewReservation}
+              onClick={onOpenNewData}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs"
             >
               <span className="text-base leading-none font-bold">+</span>
-              <span>New Reservation</span>
+              <span>New Data</span>
             </button>
           </div>
         )}
@@ -146,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="grid grid-cols-5 items-end px-1.5 pt-1.5 pb-2 max-w-md mx-auto">
           {/* Left 2 Tabs: Home (Dashboard) & Calendar */}
-          {navItems.slice(0, 2).map((item) => {
+          {mobileBottomLeft.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
             return (
@@ -178,23 +185,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
 
-          {/* Center Floating "+" New Reservation Button */}
+          {/* Center Floating "+" New Data Button */}
           <div className="flex flex-col items-center justify-end pb-0.5">
             <button
               type="button"
-              onClick={onOpenNewReservation}
+              onClick={onOpenNewData}
               className="w-12 h-12 -mt-5 rounded-2xl bg-[#4eafde] hover:bg-[#3ea0cf] active:scale-95 text-white shadow-lg shadow-[#4eafde]/35 ring-4 ring-white flex items-center justify-center transition-all"
-              aria-label="Buat Reservasi Baru"
+              aria-label="Tambah Data Baru"
             >
               <Plus className="w-6 h-6 stroke-[2.5]" />
             </button>
             <span className="text-[10px] font-bold text-[#16567d] leading-none mt-1">
-              Tambah
+              New Data
             </span>
           </div>
 
-          {/* Right 2 Tabs: Reservasi & Settings */}
-          {navItems.slice(2, 4).map((item) => {
+          {/* Right 2 Tabs: Reservasi & Jembol */}
+          {mobileBottomRight.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
             return (

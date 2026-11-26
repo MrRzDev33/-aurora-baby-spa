@@ -167,6 +167,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const sqlSchemaText = `-- AURORA MOM & BABY SPA — SUPABASE DATABASE SCHEMA
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE IF NOT EXISTS public.treatments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -194,6 +196,35 @@ CREATE TABLE IF NOT EXISTS public.reservations (
 
 ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
+CREATE TABLE IF NOT EXISTS public.jembol_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    jembol_type TEXT NOT NULL DEFAULT 'Visit Aja' CHECK (jembol_type IN ('Visit Aja', 'Trial Treatment')),
+    tanggal DATE,
+    nama TEXT NOT NULL DEFAULT '',
+    no_hp TEXT NOT NULL DEFAULT '',
+    alamat TEXT NOT NULL DEFAULT '',
+    treatment TEXT NOT NULL DEFAULT '',
+    kesan_pesan TEXT NOT NULL DEFAULT '',
+    tau_dari_mana TEXT NOT NULL DEFAULT '',
+    keterangan TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.visit_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal DATE,
+    nama TEXT NOT NULL DEFAULT '',
+    no_hp TEXT NOT NULL DEFAULT '',
+    alamat TEXT NOT NULL DEFAULT '',
+    treatment TEXT NOT NULL DEFAULT '',
+    kesan_pesan TEXT NOT NULL DEFAULT '',
+    tau_dari_mana TEXT NOT NULL DEFAULT '',
+    keterangan TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_reservations_date ON public.reservations (reservation_date);
 CREATE INDEX IF NOT EXISTS idx_reservations_datetime ON public.reservations (reservation_date, reservation_time);
 CREATE INDEX IF NOT EXISTS idx_reservations_date_category ON public.reservations (reservation_date, guest_category);
@@ -204,20 +235,73 @@ CREATE INDEX IF NOT EXISTS idx_reservations_treatment_id ON public.reservations 
 CREATE INDEX IF NOT EXISTS idx_reservations_mom_name ON public.reservations (mom_name);
 CREATE INDEX IF NOT EXISTS idx_reservations_whatsapp ON public.reservations (whatsapp);
 
+CREATE INDEX IF NOT EXISTS idx_jembol_tanggal ON public.jembol_records (tanggal);
+CREATE INDEX IF NOT EXISTS idx_jembol_type ON public.jembol_records (jembol_type);
+CREATE INDEX IF NOT EXISTS idx_jembol_created_at ON public.jembol_records (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_visit_tanggal ON public.visit_records (tanggal);
+CREATE INDEX IF NOT EXISTS idx_visit_created_at ON public.visit_records (created_at DESC);
+
 ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jembol_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visit_records ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read treatments" ON public.treatments;
+    DROP POLICY IF EXISTS "Allow public insert treatments" ON public.treatments;
+    DROP POLICY IF EXISTS "Allow public update treatments" ON public.treatments;
+    DROP POLICY IF EXISTS "Allow public delete treatments" ON public.treatments;
+END $$;
 
 CREATE POLICY "Allow public read treatments" ON public.treatments FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Allow public insert treatments" ON public.treatments FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Allow public update treatments" ON public.treatments FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete treatments" ON public.treatments FOR DELETE TO anon, authenticated USING (true);
 
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read reservations" ON public.reservations;
+    DROP POLICY IF EXISTS "Allow public insert reservations" ON public.reservations;
+    DROP POLICY IF EXISTS "Allow public update reservations" ON public.reservations;
+    DROP POLICY IF EXISTS "Allow public delete reservations" ON public.reservations;
+END $$;
+
 CREATE POLICY "Allow public read reservations" ON public.reservations FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Allow public insert reservations" ON public.reservations FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Allow public update reservations" ON public.reservations FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete reservations" ON public.reservations FOR DELETE TO anon, authenticated USING (true);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public insert jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public update jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public delete jembol_records" ON public.jembol_records;
+END $$;
+
+CREATE POLICY "Allow public read jembol_records" ON public.jembol_records FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert jembol_records" ON public.jembol_records FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public update jembol_records" ON public.jembol_records FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete jembol_records" ON public.jembol_records FOR DELETE TO anon, authenticated USING (true);
+
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public insert visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public update visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public delete visit_records" ON public.visit_records;
+END $$;
+
+CREATE POLICY "Allow public read visit_records" ON public.visit_records FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert visit_records" ON public.visit_records FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public update visit_records" ON public.visit_records FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete visit_records" ON public.visit_records FOR DELETE TO anon, authenticated USING (true);
+
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.jembol_records; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.visit_records; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 CREATE OR REPLACE FUNCTION public.get_reservation_summary(
     p_start_date DATE DEFAULT NULL,
@@ -384,7 +468,7 @@ GRANT EXECUTE ON FUNCTION public.get_reservation_summary(DATE, DATE) TO anon, au
             <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#f4fafc] border border-[#E4EBF0] text-xs text-[#647b8e]">
               <Info className="w-4 h-4 text-[#4eafde] shrink-0 mt-0.5" />
               <span>
-                Data tersimpan secara persisten menggunakan tabel <code>reservations</code> dan <code>treatments</code> dengan Row Level Security (RLS) dan sinkronisasi real-time diaktifkan.
+                Data tersimpan secara persisten menggunakan tabel <code>reservations</code>, <code>treatments</code>, <code>jembol_records</code>, dan <code>visit_records</code> dengan Row Level Security (RLS) dan sinkronisasi real-time.
               </span>
             </div>
           </div>
@@ -587,7 +671,7 @@ GRANT EXECUTE ON FUNCTION public.get_reservation_summary(DATE, DATE) TO anon, au
               Trial
             </span>
             <p className="text-xs text-[#647b8e]">
-              Kunjungan pertama kali atau tamu yang mencoba layanan spa.
+              Sesi percobaan untuk tamu yang mencoba layanan spa.
             </p>
           </div>
 

@@ -39,6 +39,37 @@ export interface ReservationWithTreatment extends Reservation {
   treatment_name: string;
 }
 
+export type JembolType = 'Visit Aja' | 'Trial Treatment';
+
+export interface JembolRecord {
+  id: string;
+  jembol_type: JembolType;
+  tanggal: string; // YYYY-MM-DD or ''
+  nama: string;
+  no_hp: string;
+  alamat: string;
+  treatment: string;
+  kesan_pesan: string;
+  tau_dari_mana: string;
+  keterangan: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VisitRecord {
+  id: string;
+  tanggal: string; // YYYY-MM-DD or ''
+  nama: string;
+  no_hp: string;
+  alamat: string;
+  treatment: string;
+  kesan_pesan: string;
+  tau_dari_mana: string;
+  keterangan: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardStats {
   todayCount: number;
   thisWeekCount: number;
@@ -49,7 +80,7 @@ export type CalendarViewType = 'month' | 'week' | 'day';
 
 export interface ReservationFilter {
   searchQuery: string;
-  dateFilter: string; // 'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'custom'
+  dateFilter: string; // 'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'range'
   customDate?: string;
   guestCategory: string; // 'all' | GuestCategory
   status: string; // 'all' | ReservationStatus

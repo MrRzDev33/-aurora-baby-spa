@@ -268,7 +268,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-xs transition-colors shadow-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Reservation</span>
+            <span>+ New Data</span>
           </button>
         </div>
       </div>
@@ -746,7 +746,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 className="px-4 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ New Reservation</span>
+                <span>+ Buat Reservasi</span>
               </button>
             </div>
           </div>

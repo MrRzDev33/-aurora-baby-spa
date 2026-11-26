@@ -4,7 +4,9 @@ import { ReservationWithTreatment } from '../../types';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
-  reservation: ReservationWithTreatment | null;
+  reservation?: ReservationWithTreatment | null;
+  customTitle?: string;
+  customDescription?: string;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -12,10 +14,12 @@ interface DeleteConfirmationModalProps {
 export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   isOpen,
   reservation,
+  customTitle,
+  customDescription,
   onClose,
   onConfirm,
 }) => {
-  if (!isOpen || !reservation) return null;
+  if (!isOpen || (!reservation && !customTitle)) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-2xs">
@@ -43,13 +47,26 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             id="delete-dialog-title"
             className="text-base font-bold text-[#263746] mt-2"
           >
-            Delete this reservation?
+            {customTitle || 'Delete this reservation?'}
           </h3>
 
-          <p className="text-xs text-[#71808F] mt-2 leading-relaxed">
-            Reservasi untuk <span className="font-semibold text-[#263746]">{reservation.mom_name}</span> ({reservation.child_name}) pada{' '}
-            <span className="font-semibold text-[#263746]">{reservation.reservation_date}</span> ({reservation.reservation_time}) akan dihapus secara permanen dari sistem.
-          </p>
+          {customDescription ? (
+            <p className="text-xs text-[#71808F] mt-2 leading-relaxed">
+              {customDescription}
+            </p>
+          ) : (
+            reservation && (
+              <p className="text-xs text-[#71808F] mt-2 leading-relaxed">
+                Reservasi untuk{' '}
+                <span className="font-semibold text-[#263746]">{reservation.mom_name}</span> (
+                {reservation.child_name}) pada{' '}
+                <span className="font-semibold text-[#263746]">
+                  {reservation.reservation_date}
+                </span>{' '}
+                ({reservation.reservation_time}) akan dihapus secara permanen dari sistem.
+              </p>
+            )
+          )}
         </div>
 
         <div className="p-4 border-t border-[#E4EBF0] bg-[#FAFDFE] flex items-center justify-end gap-3">

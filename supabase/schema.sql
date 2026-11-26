@@ -36,7 +36,38 @@ CREATE TABLE IF NOT EXISTS public.reservations (
 -- Pastikan kolom notes tersedia pada database yang sudah ada
 ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
--- 4. INDEXES (Optimal untuk filter rentang tanggal, kategori tamu, dan status)
+-- 4. JEMBOL RECORDS TABLE (Visit Aja & Trial Treatment)
+CREATE TABLE IF NOT EXISTS public.jembol_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    jembol_type TEXT NOT NULL DEFAULT 'Visit Aja' CHECK (jembol_type IN ('Visit Aja', 'Trial Treatment')),
+    tanggal DATE,
+    nama TEXT NOT NULL DEFAULT '',
+    no_hp TEXT NOT NULL DEFAULT '',
+    alamat TEXT NOT NULL DEFAULT '',
+    treatment TEXT NOT NULL DEFAULT '',
+    kesan_pesan TEXT NOT NULL DEFAULT '',
+    tau_dari_mana TEXT NOT NULL DEFAULT '',
+    keterangan TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 5. VISIT RECORDS TABLE
+CREATE TABLE IF NOT EXISTS public.visit_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tanggal DATE,
+    nama TEXT NOT NULL DEFAULT '',
+    no_hp TEXT NOT NULL DEFAULT '',
+    alamat TEXT NOT NULL DEFAULT '',
+    treatment TEXT NOT NULL DEFAULT '',
+    kesan_pesan TEXT NOT NULL DEFAULT '',
+    tau_dari_mana TEXT NOT NULL DEFAULT '',
+    keterangan TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 6. INDEXES (Optimal untuk filter rentang tanggal, kategori tamu, status, jembol, dan visit)
 CREATE INDEX IF NOT EXISTS idx_reservations_date ON public.reservations (reservation_date);
 CREATE INDEX IF NOT EXISTS idx_reservations_datetime ON public.reservations (reservation_date, reservation_time);
 CREATE INDEX IF NOT EXISTS idx_reservations_date_category ON public.reservations (reservation_date, guest_category);
@@ -47,9 +78,18 @@ CREATE INDEX IF NOT EXISTS idx_reservations_treatment_id ON public.reservations 
 CREATE INDEX IF NOT EXISTS idx_reservations_mom_name ON public.reservations (mom_name);
 CREATE INDEX IF NOT EXISTS idx_reservations_whatsapp ON public.reservations (whatsapp);
 
--- 5. ROW LEVEL SECURITY (RLS)
+CREATE INDEX IF NOT EXISTS idx_jembol_tanggal ON public.jembol_records (tanggal);
+CREATE INDEX IF NOT EXISTS idx_jembol_type ON public.jembol_records (jembol_type);
+CREATE INDEX IF NOT EXISTS idx_jembol_created_at ON public.jembol_records (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_visit_tanggal ON public.visit_records (tanggal);
+CREATE INDEX IF NOT EXISTS idx_visit_created_at ON public.visit_records (created_at DESC);
+
+-- 7. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jembol_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visit_records ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
@@ -61,13 +101,10 @@ END $$;
 
 CREATE POLICY "Allow public read treatments" ON public.treatments
     FOR SELECT TO anon, authenticated USING (true);
-
 CREATE POLICY "Allow public insert treatments" ON public.treatments
     FOR INSERT TO anon, authenticated WITH CHECK (true);
-
 CREATE POLICY "Allow public update treatments" ON public.treatments
     FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
-
 CREATE POLICY "Allow public delete treatments" ON public.treatments
     FOR DELETE TO anon, authenticated USING (true);
 
@@ -81,25 +118,70 @@ END $$;
 
 CREATE POLICY "Allow public read reservations" ON public.reservations
     FOR SELECT TO anon, authenticated USING (true);
-
 CREATE POLICY "Allow public insert reservations" ON public.reservations
     FOR INSERT TO anon, authenticated WITH CHECK (true);
-
 CREATE POLICY "Allow public update reservations" ON public.reservations
     FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
-
 CREATE POLICY "Allow public delete reservations" ON public.reservations
     FOR DELETE TO anon, authenticated USING (true);
 
--- 6. ENABLE REALTIME PUBLICATION
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public insert jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public update jembol_records" ON public.jembol_records;
+    DROP POLICY IF EXISTS "Allow public delete jembol_records" ON public.jembol_records;
+END $$;
+
+CREATE POLICY "Allow public read jembol_records" ON public.jembol_records
+    FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert jembol_records" ON public.jembol_records
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public update jembol_records" ON public.jembol_records
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete jembol_records" ON public.jembol_records
+    FOR DELETE TO anon, authenticated USING (true);
+
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public insert visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public update visit_records" ON public.visit_records;
+    DROP POLICY IF EXISTS "Allow public delete visit_records" ON public.visit_records;
+END $$;
+
+CREATE POLICY "Allow public read visit_records" ON public.visit_records
+    FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert visit_records" ON public.visit_records
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public update visit_records" ON public.visit_records
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete visit_records" ON public.visit_records
+    FOR DELETE TO anon, authenticated USING (true);
+
+-- 8. ENABLE REALTIME PUBLICATION
 DO $$
 BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;
 EXCEPTION WHEN OTHERS THEN
-    NULL; -- Publication sudah terdaftar
+    NULL;
 END $$;
 
--- 7. OPTIONAL HELPER FUNCTION: Ringkasan Kategori Tamu per Rentang Tanggal
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.jembol_records;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.visit_records;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- 9. OPTIONAL HELPER FUNCTION: Ringkasan Kategori Tamu per Rentang Tanggal
 CREATE OR REPLACE FUNCTION public.get_reservation_summary(
     p_start_date DATE DEFAULT NULL,
     p_end_date DATE DEFAULT NULL
@@ -125,7 +207,7 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_reservation_summary(DATE, DATE) TO anon, authenticated;
 
--- 8. INITIAL TREATMENTS DATA (Opsional, tidak menimpa data yang sudah ada)
+-- 10. INITIAL TREATMENTS DATA (Opsional, tidak menimpa data yang sudah ada)
 INSERT INTO public.treatments (id, name, is_active)
 VALUES
     ('c56a4180-65aa-42ec-a945-5fd21dec0538', 'Couple Massage Mom & Kids', true),

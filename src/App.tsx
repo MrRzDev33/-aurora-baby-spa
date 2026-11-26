@@ -6,23 +6,36 @@
 import React, { useState } from 'react';
 import { CalendarView } from './components/calendar/CalendarView';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { JembolVisitView } from './components/jembolVisit/JembolVisitView';
 import { Header } from './components/layout/Header';
 import { NavTab, Sidebar } from './components/layout/Sidebar';
 import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationModal';
+import { JembolFormModal } from './components/modals/JembolFormModal';
+import { JembolVisitDetailModal } from './components/modals/JembolVisitDetailModal';
+import { NewDataChooserModal } from './components/modals/NewDataChooserModal';
 import { ReservationDetailModal } from './components/modals/ReservationDetailModal';
 import { ReservationFormModal } from './components/modals/ReservationFormModal';
+import { VisitFormModal } from './components/modals/VisitFormModal';
 import { ReservationListView } from './components/reservations/ReservationListView';
 import { SettingsView } from './components/settings/SettingsView';
 import { CategoryLegendPopup } from './components/ui/CategoryLegendPopup';
 import { Toast, ToastMessage } from './components/ui/Toast';
 import { useDatabase } from './hooks/useDatabase';
-import { Reservation, ReservationWithTreatment } from './types';
+import {
+  JembolRecord,
+  Reservation,
+  ReservationWithTreatment,
+  VisitRecord,
+} from './types';
 
 export default function App() {
   const {
     reservations,
     treatments,
     activeTreatments,
+    jembolRecords,
+    visitRecords,
+    missingJembolVisitTables,
     stats,
     loading,
     loadingMessage,
@@ -32,6 +45,12 @@ export default function App() {
     updateReservation,
     deleteReservation,
     clearAllReservations,
+    createJembol,
+    updateJembol,
+    deleteJembol,
+    createVisit,
+    updateVisit,
+    deleteVisit,
     addTreatment,
     updateTreatment,
     toggleTreatmentActive,
@@ -41,10 +60,14 @@ export default function App() {
 
   // Navigation tab
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [jembolVisitInitialTab, setJembolVisitInitialTab] = useState<'jembol' | 'visit'>('jembol');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Modal states
+  // New Data Chooser Modal
+  const [isNewDataChooserOpen, setIsNewDataChooserOpen] = useState(false);
+
+  // Reservation modal states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<ReservationWithTreatment | null>(null);
   const [formDefaultDate, setFormDefaultDate] = useState<string | undefined>(undefined);
@@ -54,6 +77,26 @@ export default function App() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<ReservationWithTreatment | null>(null);
+
+  // Jembol modal states
+  const [isJembolFormOpen, setIsJembolFormOpen] = useState(false);
+  const [editingJembol, setEditingJembol] = useState<JembolRecord | null>(null);
+
+  // Visit modal states
+  const [isVisitFormOpen, setIsVisitFormOpen] = useState(false);
+  const [editingVisit, setEditingVisit] = useState<VisitRecord | null>(null);
+
+  // Detail modal for Jembol / Visit
+  const [jembolVisitDetailState, setJembolVisitDetailState] = useState<{
+    isOpen: boolean;
+    mode: 'jembol' | 'visit';
+    jembolData?: JembolRecord | null;
+    visitData?: VisitRecord | null;
+  }>({ isOpen: false, mode: 'jembol' });
+
+  // Delete confirmation for Jembol / Visit
+  const [jembolToDelete, setJembolToDelete] = useState<JembolRecord | null>(null);
+  const [visitToDelete, setVisitToDelete] = useState<VisitRecord | null>(null);
 
   // Toast notification state
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -66,6 +109,11 @@ export default function App() {
     });
   };
 
+  // Global + New Data button handler
+  const handleOpenNewDataChooser = () => {
+    setIsNewDataChooserOpen(true);
+  };
+
   // Handlers for New Reservation
   const handleOpenNewReservation = (dateStr?: string) => {
     setEditingReservation(null);
@@ -73,39 +121,139 @@ export default function App() {
     setIsFormOpen(true);
   };
 
-  // Handlers for Viewing Detail
+  // Handlers for Viewing Detail Reservation
   const handleSelectReservation = (res: ReservationWithTreatment) => {
     setSelectedReservation(res);
     setIsDetailOpen(true);
   };
 
-  // Handlers for Editing
+  // Handlers for Editing Reservation
   const handleStartEditReservation = (res: ReservationWithTreatment) => {
     setIsDetailOpen(false);
     setEditingReservation(res);
     setIsFormOpen(true);
   };
 
-  // Handlers for Deleting
+  // Handlers for Deleting Reservation
   const handleStartDeleteReservation = (res: ReservationWithTreatment) => {
     setIsDetailOpen(false);
+    setJembolToDelete(null);
+    setVisitToDelete(null);
     setReservationToDelete(res);
     setIsDeleteOpen(true);
   };
 
+  // Handlers for Jembol
+  const handleOpenNewJembol = () => {
+    setEditingJembol(null);
+    setIsJembolFormOpen(true);
+  };
+
+  const handleSelectJembol = (record: JembolRecord) => {
+    setJembolVisitDetailState({
+      isOpen: true,
+      mode: 'jembol',
+      jembolData: record,
+      visitData: null,
+    });
+  };
+
+  const handleStartEditJembol = (record: JembolRecord) => {
+    setJembolVisitDetailState((prev) => ({ ...prev, isOpen: false }));
+    setEditingJembol(record);
+    setIsJembolFormOpen(true);
+  };
+
+  const handleStartDeleteJembol = (record: JembolRecord) => {
+    setJembolVisitDetailState((prev) => ({ ...prev, isOpen: false }));
+    setReservationToDelete(null);
+    setVisitToDelete(null);
+    setJembolToDelete(record);
+    setIsDeleteOpen(true);
+  };
+
+  const handleJembolSubmit = async (
+    data: Omit<JembolRecord, 'id' | 'created_at' | 'updated_at'>
+  ) => {
+    if (editingJembol) {
+      await updateJembol(editingJembol.id, data);
+      showToast('Data Jembol berhasil diperbarui.');
+    } else {
+      await createJembol(data);
+      showToast('Data Jembol berhasil disimpan.');
+    }
+    setIsJembolFormOpen(false);
+    setEditingJembol(null);
+  };
+
+  // Handlers for Visit
+  const handleOpenNewVisit = () => {
+    setEditingVisit(null);
+    setIsVisitFormOpen(true);
+  };
+
+  const handleSelectVisit = (record: VisitRecord) => {
+    setJembolVisitDetailState({
+      isOpen: true,
+      mode: 'visit',
+      jembolData: null,
+      visitData: record,
+    });
+  };
+
+  const handleStartEditVisit = (record: VisitRecord) => {
+    setJembolVisitDetailState((prev) => ({ ...prev, isOpen: false }));
+    setEditingVisit(record);
+    setIsVisitFormOpen(true);
+  };
+
+  const handleStartDeleteVisit = (record: VisitRecord) => {
+    setJembolVisitDetailState((prev) => ({ ...prev, isOpen: false }));
+    setReservationToDelete(null);
+    setJembolToDelete(null);
+    setVisitToDelete(record);
+    setIsDeleteOpen(true);
+  };
+
+  const handleVisitSubmit = async (
+    data: Omit<VisitRecord, 'id' | 'created_at' | 'updated_at'>
+  ) => {
+    if (editingVisit) {
+      await updateVisit(editingVisit.id, data);
+      showToast('Data Visit berhasil diperbarui.');
+    } else {
+      await createVisit(data);
+      showToast('Data Visit berhasil disimpan.');
+    }
+    setIsVisitFormOpen(false);
+    setEditingVisit(null);
+  };
+
+  // Unified Delete Confirm
   const handleConfirmDelete = async () => {
-    if (!reservationToDelete) return;
     try {
-      await deleteReservation(reservationToDelete.id);
-      setIsDeleteOpen(false);
-      setReservationToDelete(null);
-      showToast('Reservation deleted.');
+      if (reservationToDelete) {
+        await deleteReservation(reservationToDelete.id);
+        setReservationToDelete(null);
+        setIsDeleteOpen(false);
+        showToast('Reservation deleted.');
+      } else if (jembolToDelete) {
+        await deleteJembol(jembolToDelete.id);
+        setJembolToDelete(null);
+        setIsDeleteOpen(false);
+        showToast('Data Jembol berhasil dihapus.');
+      } else if (visitToDelete) {
+        await deleteVisit(visitToDelete.id);
+        setVisitToDelete(null);
+        setIsDeleteOpen(false);
+        showToast('Data Visit berhasil dihapus.');
+      }
     } catch {
       showToast('Unable to connect to the database. Please try again.', 'error');
     }
   };
 
-  // Form Submit handler (Async, handles Supabase insert/update)
+  // Reservation Form Submit handler
   const handleFormSubmit = async (
     data: Omit<Reservation, 'id' | 'reservation_code' | 'created_at' | 'updated_at'>
   ) => {
@@ -120,9 +268,13 @@ export default function App() {
       setIsFormOpen(false);
       setEditingReservation(null);
     } catch (err) {
-      // Re-throw so ReservationFormModal catches it, shows error and preserves form inputs
       throw err;
     }
+  };
+
+  const navigateToJembolVisit = (subTab: 'jembol' | 'visit' = 'jembol') => {
+    setJembolVisitInitialTab(subTab);
+    setCurrentTab('jembol_visit');
   };
 
   return (
@@ -135,7 +287,7 @@ export default function App() {
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
-        onOpenNewReservation={() => handleOpenNewReservation()}
+        onOpenNewData={handleOpenNewDataChooser}
       />
 
       {/* Main Content Area */}
@@ -143,8 +295,9 @@ export default function App() {
         {/* Top Header */}
         <Header
           currentTab={currentTab}
+          onSelectTab={setCurrentTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onOpenNewReservation={() => handleOpenNewReservation()}
+          onOpenNewData={handleOpenNewDataChooser}
           onResetData={() => {
             refreshData('Memuat ulang data...');
             showToast('Data berhasil disegarkan dari database.');
@@ -167,10 +320,15 @@ export default function App() {
               stats={stats}
               reservations={reservations}
               treatments={treatments}
-              onOpenNewReservation={() => handleOpenNewReservation()}
+              jembolRecords={jembolRecords}
+              visitRecords={visitRecords}
+              onOpenNewData={handleOpenNewDataChooser}
               onNavigateToCalendar={() => setCurrentTab('calendar')}
               onNavigateToReservations={() => setCurrentTab('reservations')}
+              onNavigateToJembolVisit={navigateToJembolVisit}
               onSelectReservation={handleSelectReservation}
+              onSelectJembol={handleSelectJembol}
+              onSelectVisit={handleSelectVisit}
             />
           )}
 
@@ -178,7 +336,7 @@ export default function App() {
             <CalendarView
               reservations={reservations}
               onSelectReservation={handleSelectReservation}
-              onOpenNewReservation={() => handleOpenNewReservation()}
+              onOpenNewReservation={handleOpenNewDataChooser}
               onOpenNewReservationForDate={(dateStr) => handleOpenNewReservation(dateStr)}
             />
           )}
@@ -187,10 +345,28 @@ export default function App() {
             <ReservationListView
               reservations={reservations}
               treatments={treatments}
-              onOpenNewReservation={() => handleOpenNewReservation()}
+              onOpenNewReservation={handleOpenNewDataChooser}
               onSelectReservation={handleSelectReservation}
               onEditReservation={handleStartEditReservation}
               onDeleteReservation={handleStartDeleteReservation}
+            />
+          )}
+
+          {currentTab === 'jembol_visit' && (
+            <JembolVisitView
+              jembolRecords={jembolRecords}
+              visitRecords={visitRecords}
+              missingTables={missingJembolVisitTables}
+              initialSubTab={jembolVisitInitialTab}
+              onOpenNewJembol={handleOpenNewJembol}
+              onOpenNewVisit={handleOpenNewVisit}
+              onSelectJembol={handleSelectJembol}
+              onEditJembol={handleStartEditJembol}
+              onDeleteJembol={handleStartDeleteJembol}
+              onSelectVisit={handleSelectVisit}
+              onEditVisit={handleStartEditVisit}
+              onDeleteVisit={handleStartDeleteVisit}
+              onNavigateToSettings={() => setCurrentTab('settings')}
             />
           )}
 
@@ -227,6 +403,15 @@ export default function App() {
       </div>
 
       {/* Modals */}
+      {/* 0. New Data Chooser Modal */}
+      <NewDataChooserModal
+        isOpen={isNewDataChooserOpen}
+        onClose={() => setIsNewDataChooserOpen(false)}
+        onChooseReservation={() => handleOpenNewReservation()}
+        onChooseJembol={handleOpenNewJembol}
+        onChooseVisit={handleOpenNewVisit}
+      />
+
       {/* 1. Create/Edit Reservation Form Modal */}
       <ReservationFormModal
         isOpen={isFormOpen}
@@ -240,7 +425,31 @@ export default function App() {
         onSubmit={handleFormSubmit}
       />
 
-      {/* 2. Reservation Detail Modal */}
+      {/* 2. Create/Edit Jembol Form Modal */}
+      <JembolFormModal
+        isOpen={isJembolFormOpen}
+        initialData={editingJembol}
+        activeTreatments={activeTreatments}
+        onClose={() => {
+          setIsJembolFormOpen(false);
+          setEditingJembol(null);
+        }}
+        onSubmit={handleJembolSubmit}
+      />
+
+      {/* 3. Create/Edit Visit Form Modal */}
+      <VisitFormModal
+        isOpen={isVisitFormOpen}
+        initialData={editingVisit}
+        activeTreatments={activeTreatments}
+        onClose={() => {
+          setIsVisitFormOpen(false);
+          setEditingVisit(null);
+        }}
+        onSubmit={handleVisitSubmit}
+      />
+
+      {/* 4. Reservation Detail Modal */}
       <ReservationDetailModal
         reservation={selectedReservation}
         isOpen={isDetailOpen}
@@ -252,13 +461,54 @@ export default function App() {
         onDelete={handleStartDeleteReservation}
       />
 
-      {/* 3. Delete Confirmation Modal */}
+      {/* 5. Jembol / Visit Detail Modal */}
+      <JembolVisitDetailModal
+        isOpen={jembolVisitDetailState.isOpen}
+        mode={jembolVisitDetailState.mode}
+        jembolData={jembolVisitDetailState.jembolData}
+        visitData={jembolVisitDetailState.visitData}
+        onClose={() =>
+          setJembolVisitDetailState((prev) => ({ ...prev, isOpen: false }))
+        }
+        onEdit={() => {
+          if (jembolVisitDetailState.mode === 'jembol' && jembolVisitDetailState.jembolData) {
+            handleStartEditJembol(jembolVisitDetailState.jembolData);
+          } else if (jembolVisitDetailState.mode === 'visit' && jembolVisitDetailState.visitData) {
+            handleStartEditVisit(jembolVisitDetailState.visitData);
+          }
+        }}
+        onDelete={() => {
+          if (jembolVisitDetailState.mode === 'jembol' && jembolVisitDetailState.jembolData) {
+            handleStartDeleteJembol(jembolVisitDetailState.jembolData);
+          } else if (jembolVisitDetailState.mode === 'visit' && jembolVisitDetailState.visitData) {
+            handleStartDeleteVisit(jembolVisitDetailState.visitData);
+          }
+        }}
+      />
+
+      {/* 6. Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteOpen}
         reservation={reservationToDelete}
+        customTitle={
+          jembolToDelete
+            ? 'Hapus Data Jembol?'
+            : visitToDelete
+            ? 'Hapus Data Visit?'
+            : undefined
+        }
+        customDescription={
+          jembolToDelete
+            ? `Data Jembol (${jembolToDelete.jembol_type}) atas nama "${jembolToDelete.nama || 'Tanpa Nama'}" akan dihapus permanen.`
+            : visitToDelete
+            ? `Data Visit atas nama "${visitToDelete.nama || 'Tanpa Nama'}" akan dihapus permanen.`
+            : undefined
+        }
         onClose={() => {
           setIsDeleteOpen(false);
           setReservationToDelete(null);
+          setJembolToDelete(null);
+          setVisitToDelete(null);
         }}
         onConfirm={handleConfirmDelete}
       />

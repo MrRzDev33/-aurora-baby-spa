@@ -223,7 +223,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
           className="hidden md:flex px-4 py-2.5 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>+ New Reservation</span>
+          <span>+ New Data</span>
         </button>
       </div>
 
@@ -494,7 +494,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
                 onClick={onOpenNewReservation}
                 className="mt-4 px-4 py-2 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-xs transition-colors"
               >
-                + New Reservation
+                + New Data
               </button>
             )}
           </div>

@@ -1,4 +1,4 @@
-import { AlertCircle, Calendar, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, Calendar, Loader2, Plus, Settings } from 'lucide-react';
 import React from 'react';
 import { formatFullIndonesianDate, getCurrentDateString } from '../../utils/dateUtils';
 import { AuroraLogo } from '../ui/AuroraLogo';
@@ -6,8 +6,9 @@ import { NavTab } from './Sidebar';
 
 interface HeaderProps {
   currentTab: NavTab;
+  onSelectTab?: (tab: NavTab) => void;
   onOpenMobileMenu?: () => void;
-  onOpenNewReservation: () => void;
+  onOpenNewData: () => void;
   onResetData: () => void;
   loading?: boolean;
   loadingMessage?: string;
@@ -21,7 +22,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentTab,
-  onOpenNewReservation,
+  onSelectTab,
+  onOpenNewData,
   loading = false,
   loadingMessage = 'Loading...',
   connectionStatus,
@@ -29,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   const titles: Record<NavTab, { title: string; subtitle: string }> = {
     dashboard: {
       title: 'Dashboard',
-      subtitle: 'Ringkasan jadwal dan reservasi terkini',
+      subtitle: 'Ringkasan reservasi, data jembol, dan kunjungan tamu',
     },
     calendar: {
       title: 'Calendar',
@@ -38,6 +40,10 @@ export const Header: React.FC<HeaderProps> = ({
     reservations: {
       title: 'Reservations',
       subtitle: 'Daftar lengkap seluruh data reservasi spa',
+    },
+    jembol_visit: {
+      title: 'Jembol & Visit',
+      subtitle: 'Data jemput bola (Visit Aja & Trial Treatment) dan kunjungan',
     },
     settings: {
       title: 'Settings',
@@ -106,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Mobile compact status + Desktop/Tablet Date, Loading & CTA */}
+      {/* Right: Mobile compact status + Settings button + Desktop/Tablet Date, Loading & CTA */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {loading && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#e8f5fb] text-[#16567d] border border-[#4eafde]/50 text-[11px] sm:text-xs font-medium animate-pulse">
@@ -140,6 +146,23 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         )}
 
+        {/* Compact Settings button on HP (< md) so bottom footer stays clean at 5 slots */}
+        {onSelectTab && (
+          <button
+            type="button"
+            onClick={() => onSelectTab('settings')}
+            className={`md:hidden w-9 h-9 rounded-xl border flex items-center justify-center transition-colors ${
+              currentTab === 'settings'
+                ? 'bg-[#e8f5fb] border-[#4eafde] text-[#16567d]'
+                : 'bg-white border-[#E4EBF0] text-[#647b8e] hover:text-[#223749]'
+            }`}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
+
         <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f4fafc] border border-[#E4EBF0] text-xs text-[#647b8e]">
           <Calendar className="w-3.5 h-3.5 text-[#4eafde]" />
           <span>{formattedToday}</span>
@@ -147,11 +170,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop & Tablet Header CTA */}
         <button
-          onClick={onOpenNewReservation}
+          onClick={onOpenNewData}
           className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#4eafde] hover:bg-[#3ea0cf] text-white font-semibold text-sm transition-colors shadow-xs"
         >
           <Plus className="w-4 h-4" />
-          <span>+ New Reservation</span>
+          <span>+ New Data</span>
         </button>
       </div>
     </header>

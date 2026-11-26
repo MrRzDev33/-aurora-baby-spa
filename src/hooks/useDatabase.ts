@@ -1,17 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
+import { jembolVisitService } from '../services/jembolVisitService';
 import { reservationService } from '../services/reservationService';
 import { getSupabaseCredentials } from '../services/supabase';
 import {
   DashboardStats,
+  JembolRecord,
   Reservation,
   ReservationWithTreatment,
   Treatment,
+  VisitRecord,
 } from '../types';
 
 export function useDatabase() {
   const [reservations, setReservations] = useState<ReservationWithTreatment[]>([]);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [activeTreatments, setActiveTreatments] = useState<Treatment[]>([]);
+  const [jembolRecords, setJembolRecords] = useState<JembolRecord[]>([]);
+  const [visitRecords, setVisitRecords] = useState<VisitRecord[]>([]);
+  const [missingJembolVisitTables, setMissingJembolVisitTables] = useState<{
+    jembolTableMissing: boolean;
+    visitTableMissing: boolean;
+  }>({ jembolTableMissing: false, visitTableMissing: false });
+
   const [stats, setStats] = useState<DashboardStats>({
     todayCount: 0,
     thisWeekCount: 0,
@@ -19,7 +29,7 @@ export function useDatabase() {
   });
   const [upcomingReservations, setUpcomingReservations] = useState<ReservationWithTreatment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [loadingMessage, setLoadingMessage] = useState<string>('Loading reservations...');
+  const [loadingMessage, setLoadingMessage] = useState<string>('Loading data...');
   const [connectionStatus, setConnectionStatus] = useState<{
     isConfigured: boolean;
     isConnected: boolean;
@@ -37,10 +47,11 @@ export function useDatabase() {
       setLoading(true);
     }
     try {
-      // Fetch concurrently from Supabase data access layer
-      const [resList, trtList] = await Promise.all([
+      const [resList, trtList, jembolList, visitList] = await Promise.all([
         reservationService.getReservations(),
         reservationService.getTreatments(),
+        jembolVisitService.getJembolRecords(),
+        jembolVisitService.getVisitRecords(),
       ]);
 
       const activeTrt = trtList.filter((t) => t.is_active);
@@ -60,6 +71,9 @@ export function useDatabase() {
       setReservations(resList);
       setTreatments(trtList);
       setActiveTreatments(activeTrt);
+      setJembolRecords(jembolList);
+      setVisitRecords(visitList);
+      setMissingJembolVisitTables(jembolVisitService.getMissingTablesStatus());
       setStats(computedStats);
       setUpcomingReservations(upcoming);
     } catch (err) {
@@ -69,7 +83,6 @@ export function useDatabase() {
     }
   }, []);
 
-  // Check connection to Supabase
   const checkConnection = useCallback(async () => {
     const creds = getSupabaseCredentials();
     if (!creds.isConfigured) {
@@ -93,16 +106,19 @@ export function useDatabase() {
   }, []);
 
   useEffect(() => {
-    refreshData('Loading calendar & reservations...');
+    refreshData('Loading data...');
     checkConnection();
 
-    // Subscribe to Supabase Realtime changes
-    const unsubscribeRealtime = reservationService.subscribeToRealtime(() => {
+    const unsubscribeReservations = reservationService.subscribeToRealtime(() => {
+      refreshData();
+    });
+    const unsubscribeJembolVisit = jembolVisitService.subscribeToRealtime(() => {
       refreshData();
     });
 
     return () => {
-      unsubscribeRealtime();
+      unsubscribeReservations();
+      unsubscribeJembolVisit();
     };
   }, [refreshData, checkConnection]);
 
@@ -116,8 +132,6 @@ export function useDatabase() {
       const created = await reservationService.createReservation(data);
       await refreshData();
       return created;
-    } catch (err) {
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -133,8 +147,6 @@ export function useDatabase() {
       const updated = await reservationService.updateReservation(id, updates);
       await refreshData();
       return updated;
-    } catch (err) {
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -147,8 +159,6 @@ export function useDatabase() {
       const success = await reservationService.deleteReservation(id);
       await refreshData();
       return success;
-    } catch (err) {
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -159,6 +169,90 @@ export function useDatabase() {
     setLoadingMessage('Clearing all reservations...');
     try {
       const success = await reservationService.clearAllReservations();
+      await refreshData();
+      return success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CRUD for Jembol Records
+  const createJembol = async (
+    data: Omit<JembolRecord, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<JembolRecord> => {
+    setLoading(true);
+    setLoadingMessage('Menyimpan data jembol...');
+    try {
+      const created = await jembolVisitService.createJembolRecord(data);
+      await refreshData();
+      return created;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateJembol = async (
+    id: string,
+    updates: Partial<Omit<JembolRecord, 'id' | 'created_at'>>
+  ): Promise<JembolRecord> => {
+    setLoading(true);
+    setLoadingMessage('Memperbarui data jembol...');
+    try {
+      const updated = await jembolVisitService.updateJembolRecord(id, updates);
+      await refreshData();
+      return updated;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteJembol = async (id: string): Promise<boolean> => {
+    setLoading(true);
+    setLoadingMessage('Menghapus data jembol...');
+    try {
+      const success = await jembolVisitService.deleteJembolRecord(id);
+      await refreshData();
+      return success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CRUD for Visit Records
+  const createVisit = async (
+    data: Omit<VisitRecord, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<VisitRecord> => {
+    setLoading(true);
+    setLoadingMessage('Menyimpan data visit...');
+    try {
+      const created = await jembolVisitService.createVisitRecord(data);
+      await refreshData();
+      return created;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateVisit = async (
+    id: string,
+    updates: Partial<Omit<VisitRecord, 'id' | 'created_at'>>
+  ): Promise<VisitRecord> => {
+    setLoading(true);
+    setLoadingMessage('Memperbarui data visit...');
+    try {
+      const updated = await jembolVisitService.updateVisitRecord(id, updates);
+      await refreshData();
+      return updated;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteVisit = async (id: string): Promise<boolean> => {
+    setLoading(true);
+    setLoadingMessage('Menghapus data visit...');
+    try {
+      const success = await jembolVisitService.deleteVisitRecord(id);
       await refreshData();
       return success;
     } finally {
@@ -221,6 +315,9 @@ export function useDatabase() {
     reservations,
     treatments,
     activeTreatments,
+    jembolRecords,
+    visitRecords,
+    missingJembolVisitTables,
     stats,
     upcomingReservations,
     loading,
@@ -231,6 +328,12 @@ export function useDatabase() {
     updateReservation,
     deleteReservation,
     clearAllReservations,
+    createJembol,
+    updateJembol,
+    deleteJembol,
+    createVisit,
+    updateVisit,
+    deleteVisit,
     addTreatment,
     updateTreatment,
     toggleTreatmentActive,
