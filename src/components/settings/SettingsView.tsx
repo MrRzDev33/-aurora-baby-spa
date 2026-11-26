@@ -198,7 +198,7 @@ ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS public.jembol_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    jembol_type TEXT NOT NULL DEFAULT 'Visit Aja' CHECK (jembol_type IN ('Visit Aja', 'Trial Treatment')),
+    jembol_type TEXT NOT NULL DEFAULT 'Visit Aja' CHECK (jembol_type IN ('Visit Aja', 'Trial Treatment', 'Ambil Voucher')),
     tanggal DATE,
     nama TEXT NOT NULL DEFAULT '',
     no_hp TEXT NOT NULL DEFAULT '',
@@ -210,6 +210,9 @@ CREATE TABLE IF NOT EXISTS public.jembol_records (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.jembol_records DROP CONSTRAINT IF EXISTS jembol_records_jembol_type_check;
+ALTER TABLE public.jembol_records ADD CONSTRAINT jembol_records_jembol_type_check CHECK (jembol_type IN ('Visit Aja', 'Trial Treatment', 'Ambil Voucher'));
 
 CREATE TABLE IF NOT EXISTS public.visit_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

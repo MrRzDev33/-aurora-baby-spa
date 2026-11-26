@@ -148,12 +148,12 @@ export const JembolFormModal: React.FC<JembolFormModalProps> = ({
               </div>
             )}
 
-            {/* Jenis Data Jembol: Visit Aja vs Trial Treatment */}
+            {/* Jenis Data Jembol: Visit Aja, Trial Treatment, & Ambil Voucher */}
             <div>
               <label className="block text-xs font-semibold text-[#223749] mb-1.5">
                 Jenis Jembol
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {(
                   [
                     {
@@ -167,6 +167,12 @@ export const JembolFormModal: React.FC<JembolFormModalProps> = ({
                       desc: 'Percobaan treatment jembol',
                       activeClass: 'bg-[#F0F9FF] text-[#0369A1] border-[#0EA5E9] ring-1 ring-[#0EA5E9]/40',
                       dotClass: 'bg-[#0EA5E9]',
+                    },
+                    {
+                      value: 'Ambil Voucher' as JembolType,
+                      desc: 'Dapat / ambil voucher tanpa visit',
+                      activeClass: 'bg-[#F5F3FF] text-[#5B21B6] border-[#7C3AED] ring-1 ring-[#7C3AED]/40',
+                      dotClass: 'bg-[#7C3AED]',
                     },
                   ] as const
                 ).map((opt) => {

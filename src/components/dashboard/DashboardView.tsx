@@ -217,18 +217,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return list;
   }, [jembolRecords, searchQuery, periodFilter, effectiveStart, effectiveEnd, sortOrder]);
 
-  // Jembol Split Counts: Visit Aja vs Trial Treatment
+  // Jembol Split Counts: Visit Aja vs Trial Treatment vs Ambil Voucher
   const jembolSummary = useMemo(() => {
     let visitAja = 0;
     let trialTreatment = 0;
+    let ambilVoucher = 0;
     for (const item of filteredJembolRecords) {
       if (item.jembol_type === 'Trial Treatment') trialTreatment++;
+      else if (item.jembol_type === 'Ambil Voucher') ambilVoucher++;
       else visitAja++;
     }
     return {
       total: filteredJembolRecords.length,
       visitAja,
       trialTreatment,
+      ambilVoucher,
     };
   }, [filteredJembolRecords]);
 
@@ -792,7 +795,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   Data Jembol
                 </h3>
                 <p className="text-[11px] text-[#647b8e]">
-                  Terpisah antara Visit Aja &amp; Trial Treatment
+                  Terpisah: Visit Aja, Trial Treatment &amp; Ambil Voucher
                 </p>
               </div>
             </div>
@@ -808,7 +811,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="p-2.5 rounded-xl bg-white border border-[#E4EBF0]">
               <span className="text-[10px] font-semibold text-[#647b8e] uppercase block">
                 Total
@@ -831,6 +834,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
               <span className="text-xl sm:text-2xl font-bold text-[#0C4A6E] tabular-nums">
                 {jembolSummary.trialTreatment}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-[#EDE9FE]/80 border border-[#DDD6FE]">
+              <span className="text-[10px] font-bold text-[#5B21B6] uppercase block truncate">
+                Voucher
+              </span>
+              <span className="text-xl sm:text-2xl font-bold text-[#4C1D95] tabular-nums">
+                {jembolSummary.ambilVoucher}
               </span>
             </div>
           </div>
@@ -1067,17 +1078,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="divide-y divide-[#E4EBF0]">
                     {filteredJembolRecords.slice(0, 10).map((item) => {
                       const isTrial = item.jembol_type === 'Trial Treatment';
+                      const isVoucher = item.jembol_type === 'Ambil Voucher';
                       return (
                         <div
                           key={item.id}
                           onClick={() => onSelectJembol(item)}
-                          className="py-3.5 px-2.5 sm:px-3 -mx-2.5 sm:-mx-3 rounded-xl hover:bg-[#FFFBEB]/60 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 group"
+                          className={`py-3.5 px-2.5 sm:px-3 -mx-2.5 sm:-mx-3 rounded-xl transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 group ${
+                            isTrial
+                              ? 'hover:bg-[#F0F9FF]/70'
+                              : isVoucher
+                              ? 'hover:bg-[#F5F3FF]/70'
+                              : 'hover:bg-[#FFFBEB]/60'
+                          }`}
                         >
                           <div className="flex items-start sm:items-center gap-3 min-w-0">
                             <span
                               className={`text-[11px] font-bold px-2.5 py-1 rounded-md border shrink-0 ${
                                 isTrial
                                   ? 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]'
+                                  : isVoucher
+                                  ? 'bg-[#EDE9FE] text-[#5B21B6] border-[#DDD6FE]'
                                   : 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
                               }`}
                             >

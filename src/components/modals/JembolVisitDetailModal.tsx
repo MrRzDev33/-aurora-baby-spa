@@ -82,16 +82,22 @@ export const JembolVisitDetailModal: React.FC<JembolVisitDetailModalProps> = ({
               className={`p-3.5 rounded-xl border flex items-center justify-between ${
                 jembolType === 'Trial Treatment'
                   ? 'bg-[#F0F9FF] border-[#BAE6FD]'
+                  : jembolType === 'Ambil Voucher'
+                  ? 'bg-[#F5F3FF] border-[#DDD6FE]'
                   : 'bg-[#FFFBEB] border-[#FDE68A]'
               }`}
             >
               <span className="text-xs font-semibold text-[#4E6273]">Jenis Jembol</span>
               <span
                 className={`text-xs font-bold px-2.5 py-1 rounded-md text-white ${
-                  jembolType === 'Trial Treatment' ? 'bg-[#0EA5E9]' : 'bg-[#D97706]'
+                  jembolType === 'Trial Treatment'
+                    ? 'bg-[#0EA5E9]'
+                    : jembolType === 'Ambil Voucher'
+                    ? 'bg-[#7C3AED]'
+                    : 'bg-[#D97706]'
                 }`}
               >
-                {jembolType}
+                {jembolType === 'Ambil Voucher' ? 'Ambil Voucher (Tanpa Visit)' : jembolType}
               </span>
             </div>
           )}

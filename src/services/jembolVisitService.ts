@@ -61,9 +61,16 @@ function saveLocalVisit(items: VisitRecord[]): void {
 }
 
 function normalizeJembolRow(row: any): JembolRecord {
+  const validType: JembolType =
+    row.jembol_type === 'Trial Treatment'
+      ? 'Trial Treatment'
+      : row.jembol_type === 'Ambil Voucher'
+      ? 'Ambil Voucher'
+      : 'Visit Aja';
+
   return {
     id: row.id,
-    jembol_type: (row.jembol_type === 'Trial Treatment' ? 'Trial Treatment' : 'Visit Aja') as JembolType,
+    jembol_type: validType,
     tanggal: row.tanggal || '',
     nama: row.nama || '',
     no_hp: row.no_hp || '',

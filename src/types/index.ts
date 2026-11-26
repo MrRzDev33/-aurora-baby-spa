@@ -39,7 +39,7 @@ export interface ReservationWithTreatment extends Reservation {
   treatment_name: string;
 }
 
-export type JembolType = 'Visit Aja' | 'Trial Treatment';
+export type JembolType = 'Visit Aja' | 'Trial Treatment' | 'Ambil Voucher';
 
 export interface JembolRecord {
   id: string;

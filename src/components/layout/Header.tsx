@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
     },
     jembol_visit: {
       title: 'Jembol & Visit',
-      subtitle: 'Data jemput bola (Visit Aja & Trial Treatment) dan kunjungan',
+      subtitle: 'Data jemput bola (Visit Aja, Trial Treatment, Ambil Voucher) & kunjungan',
     },
     settings: {
       title: 'Settings',

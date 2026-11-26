@@ -100,7 +100,7 @@ export const NewDataChooserModal: React.FC<NewDataChooserModalProps> = ({
                 Data Jembol
               </div>
               <p className="text-xs text-[#6B5335] mt-0.5">
-                Input jemput bola: pilihan Visit Aja atau Trial Treatment
+                Visit Aja, Trial Treatment, atau Ambil Voucher (tanpa visit)
               </p>
             </div>
             <span className="text-xs font-bold text-[#D97706] shrink-0">&rarr;</span>

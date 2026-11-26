@@ -140,14 +140,17 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
   const jembolCounts = useMemo(() => {
     let visitAja = 0;
     let trialTreatment = 0;
+    let ambilVoucher = 0;
     for (const item of baseFilteredJembol) {
       if (item.jembol_type === 'Trial Treatment') trialTreatment++;
+      else if (item.jembol_type === 'Ambil Voucher') ambilVoucher++;
       else visitAja++;
     }
     return {
       total: baseFilteredJembol.length,
       visitAja,
       trialTreatment,
+      ambilVoucher,
     };
   }, [baseFilteredJembol]);
 
@@ -226,7 +229,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
             Data Jembol &amp; Visit
           </h2>
           <p className="text-xs sm:text-sm text-[#647b8e] mt-0.5">
-            Kelola data jemput bola (Visit Aja &amp; Trial Treatment) serta kunjungan tamu
+            Kelola data jemput bola (Visit Aja, Trial Treatment, &amp; Ambil Voucher) serta kunjungan tamu
           </p>
         </div>
 
@@ -316,7 +319,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
 
       {/* ==================== SUMMARY CARDS ==================== */}
       {activeTab === 'jembol' ? (
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
           {/* Card: Total Jembol */}
           <button
             type="button"
@@ -398,6 +401,37 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
             </div>
             <p className="text-[10px] sm:text-xs text-[#0369A1]/80 mt-1 truncate">
               {jembolTypeFilter === 'Trial Treatment' ? 'Sedang difilter' : 'Sesi percobaan'}
+            </p>
+          </button>
+
+          {/* Card: Ambil Voucher (Tanpa Visit) */}
+          <button
+            type="button"
+            onClick={() =>
+              setJembolTypeFilter((prev) =>
+                prev === 'Ambil Voucher' ? 'all' : 'Ambil Voucher'
+              )
+            }
+            className={`p-3.5 sm:p-5 rounded-2xl border-2 text-left transition-all bg-[#F5F3FF]/80 ${
+              jembolTypeFilter === 'Ambil Voucher'
+                ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/35 shadow-sm'
+                : 'border-[#DDD6FE] hover:border-[#7C3AED]'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#7C3AED] shrink-0" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#5B21B6] truncate">
+                Ambil Voucher
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-bold text-[#4C1D95] tabular-nums">
+                {jembolCounts.ambilVoucher}
+              </span>
+              <span className="hidden sm:inline text-xs text-[#5B21B6]/80">data</span>
+            </div>
+            <p className="text-[10px] sm:text-xs text-[#5B21B6]/80 mt-1 truncate">
+              {jembolTypeFilter === 'Ambil Voucher' ? 'Sedang difilter' : 'Tanpa visit'}
             </p>
           </button>
         </div>
@@ -577,6 +611,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
                 <option value="all">Semua Tipe Jembol</option>
                 <option value="Visit Aja">Visit Aja</option>
                 <option value="Trial Treatment">Trial Treatment</option>
+                <option value="Ambil Voucher">Ambil Voucher (Tanpa Visit)</option>
               </select>
             </div>
           )}
@@ -674,11 +709,16 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
                 <tbody className="divide-y divide-[#E4EBF0]/70">
                   {sortedJembol.map((item) => {
                     const isTrial = item.jembol_type === 'Trial Treatment';
+                    const isVoucher = item.jembol_type === 'Ambil Voucher';
                     return (
                       <tr
                         key={item.id}
                         className={`transition-colors ${
-                          isTrial ? 'hover:bg-[#F0F9FF]/70' : 'hover:bg-[#FFFBEB]/60'
+                          isTrial
+                            ? 'hover:bg-[#F0F9FF]/70'
+                            : isVoucher
+                            ? 'hover:bg-[#F5F3FF]/70'
+                            : 'hover:bg-[#FFFBEB]/60'
                         }`}
                       >
                         <td className="py-3.5 px-4 whitespace-nowrap font-medium text-[#223749]">
@@ -689,6 +729,8 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
                             className={`text-[11px] font-bold px-2.5 py-1 rounded-md border ${
                               isTrial
                                 ? 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]'
+                                : isVoucher
+                                ? 'bg-[#EDE9FE] text-[#5B21B6] border-[#DDD6FE]'
                                 : 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
                             }`}
                           >
@@ -762,6 +804,7 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
             <div className="block lg:hidden p-3 sm:p-4 space-y-3 bg-[#FAFDFE]">
               {sortedJembol.map((item) => {
                 const isTrial = item.jembol_type === 'Trial Treatment';
+                const isVoucher = item.jembol_type === 'Ambil Voucher';
                 return (
                   <div
                     key={item.id}
@@ -769,13 +812,19 @@ export const JembolVisitView: React.FC<JembolVisitViewProps> = ({
                     className={`p-4 rounded-xl border-2 cursor-pointer space-y-2.5 shadow-2xs ${
                       isTrial
                         ? 'border-[#BAE6FD] bg-[#F0F9FF]/70'
+                        : isVoucher
+                        ? 'border-[#DDD6FE] bg-[#F5F3FF]/70'
                         : 'border-[#FDE68A] bg-[#FFFBEB]/70'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span
                         className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md text-white ${
-                          isTrial ? 'bg-[#0EA5E9]' : 'bg-[#D97706]'
+                          isTrial
+                            ? 'bg-[#0EA5E9]'
+                            : isVoucher
+                            ? 'bg-[#7C3AED]'
+                            : 'bg-[#D97706]'
                         }`}
                       >
                         {item.jembol_type}
