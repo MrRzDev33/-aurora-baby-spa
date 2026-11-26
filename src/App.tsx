@@ -24,7 +24,6 @@ export default function App() {
     treatments,
     activeTreatments,
     stats,
-    upcomingReservations,
     loading,
     loadingMessage,
     connectionStatus,
@@ -166,9 +165,11 @@ export default function App() {
           {currentTab === 'dashboard' && (
             <DashboardView
               stats={stats}
-              upcomingReservations={upcomingReservations}
+              reservations={reservations}
+              treatments={treatments}
               onOpenNewReservation={() => handleOpenNewReservation()}
               onNavigateToCalendar={() => setCurrentTab('calendar')}
+              onNavigateToReservations={() => setCurrentTab('reservations')}
               onSelectReservation={handleSelectReservation}
             />
           )}

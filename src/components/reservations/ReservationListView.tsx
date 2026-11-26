@@ -41,8 +41,9 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
 }) => {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'custom'>('all');
-  const [customDate, setCustomDate] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'range'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [treatmentFilter, setTreatmentFilter] = useState<string>('all');
@@ -63,6 +64,11 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
 
   // Filter & Search Logic
   const filteredReservations = useMemo(() => {
+    const effectiveStart =
+      startDate && endDate && startDate > endDate ? endDate : startDate;
+    const effectiveEnd =
+      startDate && endDate && startDate > endDate ? startDate : endDate;
+
     return reservations.filter((r) => {
       // 1. Search Query (Nama Moms, Nama Anak, No. WhatsApp, Reservation ID)
       if (searchQuery.trim()) {
@@ -76,7 +82,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
         }
       }
 
-      // 2. Date Filter
+      // 2. Date Filter (supports Rentang Tanggal)
       if (dateFilter === 'today') {
         if (!isToday(r.reservation_date)) return false;
       } else if (dateFilter === 'tomorrow') {
@@ -85,8 +91,9 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
         if (!isInCurrentWeek(r.reservation_date)) return false;
       } else if (dateFilter === 'this_month') {
         if (!isInCurrentMonth(r.reservation_date)) return false;
-      } else if (dateFilter === 'custom' && customDate) {
-        if (r.reservation_date !== customDate) return false;
+      } else if (dateFilter === 'range') {
+        if (effectiveStart && r.reservation_date < effectiveStart) return false;
+        if (effectiveEnd && r.reservation_date > effectiveEnd) return false;
       }
 
       // 3. Guest Category Filter
@@ -110,7 +117,8 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
     reservations,
     searchQuery,
     dateFilter,
-    customDate,
+    startDate,
+    endDate,
     tomorrowStr,
     categoryFilter,
     statusFilter,
@@ -173,7 +181,8 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   const handleResetFilters = () => {
     setSearchQuery('');
     setDateFilter('all');
-    setCustomDate('');
+    setStartDate('');
+    setEndDate('');
     setCategoryFilter('all');
     setStatusFilter('all');
     setTreatmentFilter('all');
@@ -181,8 +190,10 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
   };
 
   const hasActiveFilters =
-    searchQuery ||
+    Boolean(searchQuery) ||
     dateFilter !== 'all' ||
+    Boolean(startDate) ||
+    Boolean(endDate) ||
     categoryFilter !== 'all' ||
     statusFilter !== 'all' ||
     treatmentFilter !== 'all';
@@ -191,7 +202,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
     (categoryFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (treatmentFilter !== 'all' ? 1 : 0) +
-    (dateFilter === 'tomorrow' || dateFilter === 'custom' ? 1 : 0) +
+    (dateFilter === 'tomorrow' || dateFilter === 'range' ? 1 : 0) +
     (sortOrder !== 'recently_added' ? 1 : 0);
 
   return (
@@ -216,7 +227,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
         </button>
       </div>
 
-      {/* Quick Period Classification Tabs: Semua | Hari Ini | Minggu Ini | Bulan Ini */}
+      {/* Quick Period Classification Tabs: Semua | Hari Ini | Minggu Ini | Bulan Ini | Rentang Tanggal */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
         {(
           [
@@ -251,7 +262,54 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
             </button>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => setDateFilter('range')}
+          className={`col-span-2 sm:col-span-1 min-h-[42px] px-3.5 sm:px-4 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-center sm:justify-start gap-2 ${
+            dateFilter === 'range'
+              ? 'bg-[#4eafde] text-white border-[#4eafde] shadow-xs'
+              : 'bg-white text-[#647b8e] border-[#E4EBF0] hover:bg-[#f4fafc] hover:text-[#223749]'
+          }`}
+        >
+          <span>Rentang Tanggal</span>
+          {dateFilter === 'range' && (startDate || endDate) && (
+            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-white/25 text-white tabular-nums">
+              {sortedReservations.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Inline Date Range Bar when 'Rentang Tanggal' is selected */}
+      {dateFilter === 'range' && (
+        <div className="bg-[#F4FAFC] p-3.5 sm:p-4 rounded-2xl border border-[#4eafde]/40 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-popup-in">
+          <div>
+            <label className="block text-[11px] font-semibold text-[#16567d] uppercase tracking-wider mb-1">
+              Dari Tanggal
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl border border-[#D8E7F1] bg-white text-xs sm:text-sm text-[#223749] focus:outline-hidden focus:border-[#4eafde]"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-[#16567d] uppercase tracking-wider mb-1">
+              Sampai Tanggal
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl border border-[#D8E7F1] bg-white text-xs sm:text-sm text-[#223749] focus:outline-hidden focus:border-[#4eafde]"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E4EBF0] shadow-xs space-y-3 sm:space-y-4">
@@ -302,7 +360,7 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
           {/* Date Filter */}
           <div>
             <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">
-              Tanggal
+              Periode Tanggal
             </label>
             <select
               value={dateFilter}
@@ -314,24 +372,9 @@ export const ReservationListView: React.FC<ReservationListViewProps> = ({
               <option value="tomorrow">Besok</option>
               <option value="this_week">Minggu Ini</option>
               <option value="this_month">Bulan Ini</option>
-              <option value="custom">Pilih Tanggal...</option>
+              <option value="range">Rentang Tanggal...</option>
             </select>
           </div>
-
-          {/* Custom Date Input (if selected) */}
-          {dateFilter === 'custom' && (
-            <div>
-              <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">
-                Pilih Tanggal Spesifik
-              </label>
-              <input
-                type="date"
-                value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-[#E4EBF0] bg-white text-xs text-[#223749] focus:outline-hidden focus:border-[#4eafde]"
-              />
-            </div>
-          )}
 
           {/* Guest Category Filter */}
           <div>

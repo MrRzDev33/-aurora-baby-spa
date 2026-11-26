@@ -196,6 +196,8 @@ ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS idx_reservations_date ON public.reservations (reservation_date);
 CREATE INDEX IF NOT EXISTS idx_reservations_datetime ON public.reservations (reservation_date, reservation_time);
+CREATE INDEX IF NOT EXISTS idx_reservations_date_category ON public.reservations (reservation_date, guest_category);
+CREATE INDEX IF NOT EXISTS idx_reservations_date_status ON public.reservations (reservation_date, status);
 CREATE INDEX IF NOT EXISTS idx_reservations_status ON public.reservations (status);
 CREATE INDEX IF NOT EXISTS idx_reservations_guest_category ON public.reservations (guest_category);
 CREATE INDEX IF NOT EXISTS idx_reservations_treatment_id ON public.reservations (treatment_id);
@@ -215,7 +217,32 @@ CREATE POLICY "Allow public insert reservations" ON public.reservations FOR INSE
 CREATE POLICY "Allow public update reservations" ON public.reservations FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete reservations" ON public.reservations FOR DELETE TO anon, authenticated USING (true);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;`;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;
+
+CREATE OR REPLACE FUNCTION public.get_reservation_summary(
+    p_start_date DATE DEFAULT NULL,
+    p_end_date DATE DEFAULT NULL
+)
+RETURNS TABLE (
+    total_count BIGINT,
+    trial_count BIGINT,
+    pelanggan_count BIGINT,
+    influencer_count BIGINT
+)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT
+        COUNT(*)::BIGINT AS total_count,
+        COUNT(*) FILTER (WHERE guest_category = 'Trial')::BIGINT AS trial_count,
+        COUNT(*) FILTER (WHERE guest_category = 'Pelanggan')::BIGINT AS pelanggan_count,
+        COUNT(*) FILTER (WHERE guest_category = 'Influencer')::BIGINT AS influencer_count
+    FROM public.reservations
+    WHERE (p_start_date IS NULL OR reservation_date >= p_start_date)
+      AND (p_end_date IS NULL OR reservation_date <= p_end_date);
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_reservation_summary(DATE, DATE) TO anon, authenticated;`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlSchemaText);
