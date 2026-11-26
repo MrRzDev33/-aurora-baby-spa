@@ -1,5 +1,17 @@
 export type GuestCategory = 'Trial' | 'Pelanggan' | 'Influencer';
 
+export const GUEST_SOURCES = [
+  'Tamu reguler',
+  'Partnership',
+  'Disc Influencer',
+  'Membership',
+  'Voucher jembol',
+  'Voucher visit',
+  'Voucher Moms Treatment',
+] as const;
+
+export type GuestSource = (typeof GUEST_SOURCES)[number];
+
 export type ReservationStatus =
   | 'Pending'
   | 'Confirmed'
@@ -7,7 +19,6 @@ export type ReservationStatus =
   | 'In Treatment'
   | 'Completed'
   | 'Cancelled'
-  | 'Rescheduled'
   | 'No Show';
 
 export interface Treatment {
@@ -26,6 +37,7 @@ export interface Reservation {
   child_age: string;
   whatsapp: string;
   guest_category: GuestCategory;
+  guest_source: GuestSource;
   reservation_date: string; // YYYY-MM-DD
   reservation_time: string; // HH:mm (24-hour)
   treatment_id: string;

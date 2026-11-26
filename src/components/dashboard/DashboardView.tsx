@@ -15,6 +15,7 @@ import {
 import React, { useMemo, useState } from 'react';
 import {
   DashboardStats,
+  GUEST_SOURCES,
   GuestCategory,
   JembolRecord,
   ReservationWithTreatment,
@@ -65,6 +66,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | GuestCategory>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [treatmentFilter, setTreatmentFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recently_added' | 'nearest' | 'newest_first'>('recently_added');
@@ -124,6 +126,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       if (!matchesHomePeriod(r.reservation_date)) return false;
 
+      if (sourceFilter !== 'all' && (r.guest_source || 'Tamu reguler') !== sourceFilter) {
+        return false;
+      }
+
       if (statusFilter !== 'all' && r.status !== statusFilter) {
         return false;
       }
@@ -134,7 +140,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       return true;
     });
-  }, [reservations, searchQuery, periodFilter, effectiveStart, effectiveEnd, statusFilter, treatmentFilter]);
+  }, [reservations, searchQuery, periodFilter, effectiveStart, effectiveEnd, sourceFilter, statusFilter, treatmentFilter]);
 
   // Guest Category Breakdown (Trial, Pelanggan, Influencer)
   const categoryBreakdown = useMemo(() => {
@@ -279,6 +285,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setEndDate('');
     setSearchQuery('');
     setCategoryFilter('all');
+    setSourceFilter('all');
     setStatusFilter('all');
     setTreatmentFilter('all');
     setSortOrder('recently_added');
@@ -290,11 +297,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     Boolean(endDate) ||
     Boolean(searchQuery.trim()) ||
     categoryFilter !== 'all' ||
+    sourceFilter !== 'all' ||
     statusFilter !== 'all' ||
     treatmentFilter !== 'all';
 
   const activeAdvancedFilterCount =
     (categoryFilter !== 'all' ? 1 : 0) +
+    (sourceFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (treatmentFilter !== 'all' ? 1 : 0) +
     (sortOrder !== 'recently_added' ? 1 : 0);
@@ -536,7 +545,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div
             className={`${
               showMobileFilters ? 'grid' : 'hidden'
-            } md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1`}
+            } md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1`}
           >
             <div>
               <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">
@@ -556,6 +565,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div>
               <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">
+                Sumber Tamu
+              </label>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#E4EBF0] bg-white text-xs text-[#223749] focus:outline-hidden focus:border-[#4eafde]"
+              >
+                <option value="all">Semua Sumber</option>
+                {GUEST_SOURCES.map((src) => (
+                  <option key={src} value={src}>
+                    {src}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-[#647b8e] uppercase tracking-wider mb-1">
                 Status
               </label>
               <select
@@ -570,7 +597,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <option value="In Treatment">In Treatment</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
-                <option value="Rescheduled">Rescheduled</option>
                 <option value="No Show">No Show</option>
               </select>
             </div>
@@ -685,7 +711,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   setCategoryFilter((prev) => (prev === item.key ? 'all' : item.key));
                   setHomeListTab('reservations');
                 }}
-                className={`p-3 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                className={`p-2.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer overflow-hidden min-w-0 ${
                   theme.accentBorderClass
                 } ${
                   isSelected
@@ -693,23 +719,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     : 'hover:shadow-xs'
                 }`}
               >
-                <div className="flex items-center justify-between gap-1">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-md border ${theme.badgeClass}`}>
+                <div className="flex items-center justify-between gap-1 min-w-0">
+                  <span
+                    className={`inline-flex items-center text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md border truncate max-w-full ${theme.badgeClass}`}
+                  >
                     {item.label}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-bold text-[#4E6273] tabular-nums">
+                  <span className="hidden sm:inline-block text-xs font-bold text-[#4E6273] tabular-nums shrink-0">
                     {item.pct}%
                   </span>
                 </div>
 
-                <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
-                  <span className="text-xl sm:text-3xl font-bold text-[#223749] tabular-nums">
-                    {item.count}
+                <div className="mt-2 sm:mt-3 flex items-baseline justify-between gap-1 flex-wrap">
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="text-xl sm:text-3xl font-bold text-[#223749] tabular-nums">
+                      {item.count}
+                    </span>
+                    <span className="hidden sm:inline text-xs text-[#647b8e]">tamu</span>
+                  </div>
+                  <span className="sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/85 text-[#4E6273] border border-black/5 tabular-nums shrink-0">
+                    {item.pct}%
                   </span>
-                  <span className="hidden sm:inline text-xs text-[#647b8e]">tamu</span>
                 </div>
 
-                <div className="text-[10px] sm:text-xs text-[#647b8e] mt-0.5 truncate">
+                <div className="text-[10px] sm:text-xs text-[#647b8e] mt-1 truncate">
                   {isSelected ? 'Sedang difilter' : item.sublabel}
                 </div>
               </button>
@@ -1023,7 +1056,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 </span>
                               </div>
                               <div className="text-xs text-[#647b8e] mt-0.5 truncate">
-                                {item.treatment_name} · {formatShortDate(item.reservation_date)}
+                                {item.treatment_name} · {formatShortDate(item.reservation_date)} · {item.guest_source || 'Tamu reguler'}
                               </div>
                             </div>
                           </div>

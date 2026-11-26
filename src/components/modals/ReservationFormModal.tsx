@@ -1,7 +1,9 @@
 import { AlertCircle, Calendar, Clock, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  GUEST_SOURCES,
   GuestCategory,
+  GuestSource,
   Reservation,
   ReservationStatus,
   ReservationWithTreatment,
@@ -32,6 +34,7 @@ interface FormErrors {
   child_age?: string;
   whatsapp?: string;
   guest_category?: string;
+  guest_source?: string;
   reservation_date?: string;
   reservation_time?: string;
   treatment_name?: string;
@@ -39,6 +42,16 @@ interface FormErrors {
   status?: string;
   general?: string;
 }
+
+const VALID_STATUSES: ReservationStatus[] = [
+  'Pending',
+  'Confirmed',
+  'Checked-in',
+  'In Treatment',
+  'Completed',
+  'Cancelled',
+  'No Show',
+];
 
 export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
   isOpen,
@@ -55,10 +68,12 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
   const [childAge, setChildAge] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [guestCategory, setGuestCategory] = useState<GuestCategory>('Trial');
+  const [guestSource, setGuestSource] = useState<GuestSource | ''>('');
   const [reservationDate, setReservationDate] = useState('');
   const [reservationTime, setReservationTime] = useState('10:00');
   const [treatmentId, setTreatmentId] = useState('');
   const [treatmentName, setTreatmentName] = useState('');
+  const [showTreatmentSuggest, setShowTreatmentSuggest] = useState(false);
   const [status, setStatus] = useState<ReservationStatus>('Pending');
   const [notes, setNotes] = useState('');
 
@@ -74,11 +89,20 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setChildAge(initialData.child_age);
         setWhatsapp(initialData.whatsapp);
         setGuestCategory(initialData.guest_category);
+        setGuestSource(
+          (GUEST_SOURCES as readonly string[]).includes(initialData.guest_source)
+            ? initialData.guest_source
+            : 'Tamu reguler'
+        );
         setReservationDate(initialData.reservation_date);
         setReservationTime(initialData.reservation_time);
         setTreatmentId(initialData.treatment_id);
         setTreatmentName(initialData.treatment_name || '');
-        setStatus(initialData.status);
+        setStatus(
+          VALID_STATUSES.includes(initialData.status)
+            ? initialData.status
+            : 'Pending'
+        );
         setNotes(initialData.notes || '');
       } else {
         setMomName('');
@@ -86,6 +110,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setChildAge('');
         setWhatsapp('');
         setGuestCategory('Trial');
+        setGuestSource('');
         setReservationDate(defaultDate || getCurrentDateString());
         setReservationTime('14:00');
         setTreatmentId('');
@@ -93,9 +118,19 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         setStatus('Pending');
         setNotes('');
       }
+      setShowTreatmentSuggest(false);
       setErrors({});
     }
   }, [isOpen, initialData, defaultDate, activeTreatments]);
+
+  // Filtered treatment suggestions (suggest dropdown instead of stacking all chips)
+  const filteredTreatmentSuggestions = useMemo(() => {
+    const q = treatmentName.trim().toLowerCase();
+    if (!q) return activeTreatments.slice(0, 8);
+    return activeTreatments
+      .filter((t) => t.name.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [activeTreatments, treatmentName]);
 
   if (!isOpen) return null;
 
@@ -124,6 +159,10 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
       errs.guest_category = 'Kategori Tamu wajib dipilih.';
     }
 
+    if (!guestSource || !(GUEST_SOURCES as readonly string[]).includes(guestSource)) {
+      errs.guest_source = 'Sumber Tamu wajib dipilih dari daftar yang tersedia.';
+    }
+
     if (!reservationDate) {
       errs.reservation_date = 'Hari & Tanggal wajib ditentukan.';
     }
@@ -136,7 +175,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
       errs.treatment_name = 'Pilihan Treatment wajib diisi.';
     }
 
-    if (!status) {
+    if (!status || !VALID_STATUSES.includes(status)) {
       errs.status = 'Status wajib dipilih.';
     }
 
@@ -146,7 +185,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) {
+    if (!validate() || !guestSource) {
       return;
     }
 
@@ -173,6 +212,7 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
         child_age: childAge.trim(),
         whatsapp: whatsapp.trim(),
         guest_category: guestCategory,
+        guest_source: guestSource,
         reservation_date: reservationDate,
         reservation_time: reservationTime,
         treatment_id: targetTreatmentId,
@@ -361,6 +401,37 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
               </div>
             </div>
 
+            {/* 5b. Sumber Tamu (Strict Select Only) */}
+            <div>
+              <label className="block text-xs font-semibold text-[#223749] mb-1">
+                Sumber Tamu <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={guestSource}
+                onChange={(e) => {
+                  setGuestSource(e.target.value as GuestSource);
+                  if (errors.guest_source) {
+                    setErrors((prev) => ({ ...prev, guest_source: undefined }));
+                  }
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-sm text-[#223749] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all ${
+                  errors.guest_source ? 'border-red-400' : 'border-[#E4EBF0]'
+                }`}
+              >
+                <option value="" disabled>
+                  -- Pilih Sumber Tamu --
+                </option>
+                {GUEST_SOURCES.map((src) => (
+                  <option key={src} value={src}>
+                    {src}
+                  </option>
+                ))}
+              </select>
+              {errors.guest_source && (
+                <p className="text-red-500 text-xs mt-1">{errors.guest_source}</p>
+              )}
+            </div>
+
             {/* 6. Hari & Tanggal & 7. Jam Kedatangan (Row) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -412,73 +483,83 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
               </div>
             </div>
 
-            {/* 8. Pilihan Treatment (Input teks diketik langsung) */}
-            <div>
+            {/* 8. Pilihan Treatment (Input + floating suggest popover only, no stacked chip list) */}
+            <div className="relative">
               <label className="block text-xs font-semibold text-[#223749] mb-1">
                 Pilihan Treatment <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={treatmentName}
-                  onChange={(e) => {
-                    setTreatmentName(e.target.value);
-                    if (errors.treatment_name) {
-                      setErrors((prev) => ({ ...prev, treatment_name: undefined }));
-                    }
-                  }}
-                  placeholder="Ketik nama treatment (contoh: Baby Swim, Kids Massage, dll.)"
-                  list="treatment-options-list"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all ${
-                    errors.treatment_name ? 'border-red-400' : 'border-[#E4EBF0]'
-                  }`}
-                />
-                <datalist id="treatment-options-list">
-                  {activeTreatments.map((t) => (
-                    <option key={t.id} value={t.name} />
-                  ))}
-                </datalist>
-              </div>
-              <p className="text-[11px] text-[#647b8e] mt-1">
-                Ketik nama treatment secara langsung atau klik salah satu saran cepat berikut.
-              </p>
-              {errors.treatment_name && (
-                <p className="text-red-500 text-xs mt-1">{errors.treatment_name}</p>
-              )}
+              <input
+                type="text"
+                value={treatmentName}
+                onFocus={() => setShowTreatmentSuggest(true)}
+                onBlur={() => {
+                  // Small delay so clicking a suggestion item registers cleanly
+                  setTimeout(() => setShowTreatmentSuggest(false), 150);
+                }}
+                onChange={(e) => {
+                  setTreatmentName(e.target.value);
+                  setShowTreatmentSuggest(true);
+                  if (errors.treatment_name) {
+                    setErrors((prev) => ({ ...prev, treatment_name: undefined }));
+                  }
+                }}
+                placeholder="Ketik nama treatment (saran otomatis akan muncul)..."
+                autoComplete="off"
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-sm text-[#223749] placeholder:text-[#9AA7B4] focus:outline-hidden focus:border-[#4eafde] focus:ring-2 focus:ring-[#4eafde]/20 transition-all ${
+                  errors.treatment_name ? 'border-red-400' : 'border-[#E4EBF0]'
+                }`}
+              />
 
-              {/* Saran Cepat Treatment */}
-              {activeTreatments.length > 0 && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] text-[#8699a8] mr-0.5">Saran cepat:</span>
-                  {activeTreatments.map((t) => {
-                    const isSelected =
+              {/* Compact Suggest Dropdown */}
+              {showTreatmentSuggest && filteredTreatmentSuggestions.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-[#D8E7F1] shadow-lg max-h-44 overflow-y-auto py-1"
+                  role="listbox"
+                  aria-label="Saran Treatment"
+                >
+                  {filteredTreatmentSuggestions.map((t) => {
+                    const isExact =
                       treatmentName.trim().toLowerCase() === t.name.trim().toLowerCase();
                     return (
                       <button
                         key={t.id}
                         type="button"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setTreatmentName(t.name);
                           setTreatmentId(t.id);
+                          setShowTreatmentSuggest(false);
                           if (errors.treatment_name) {
                             setErrors((prev) => ({ ...prev, treatment_name: undefined }));
                           }
                         }}
-                        className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
-                          isSelected
-                            ? 'bg-[#4eafde] text-white border-[#4eafde] font-medium shadow-2xs'
-                            : 'bg-[#f4fafc] hover:bg-[#e8f5fb] text-[#16567d] border-[#4eafde]/30 hover:border-[#4eafde]'
+                        className={`w-full text-left px-3.5 py-2 text-xs sm:text-sm transition-colors flex items-center justify-between ${
+                          isExact
+                            ? 'bg-[#e8f5fb] text-[#16567d] font-bold'
+                            : 'text-[#223749] hover:bg-[#f4fafc]'
                         }`}
                       >
-                        {t.name}
+                        <span className="truncate">{t.name}</span>
+                        {isExact && (
+                          <span className="text-[10px] font-semibold text-[#4eafde] ml-2 shrink-0">
+                            Dipilih
+                          </span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               )}
+
+              <p className="text-[11px] text-[#647b8e] mt-1">
+                Ketik untuk melihat saran treatment yang tersedia atau isi treatment baru.
+              </p>
+              {errors.treatment_name && (
+                <p className="text-red-500 text-xs mt-1">{errors.treatment_name}</p>
+              )}
             </div>
 
-            {/* 9. Status */}
+            {/* 9. Status (Tanpa Rescheduled) */}
             <div>
               <label className="block text-xs font-semibold text-[#223749] mb-1">
                 Status Reservasi <span className="text-red-500">*</span>
@@ -494,7 +575,6 @@ export const ReservationFormModal: React.FC<ReservationFormModalProps> = ({
                 <option value="In Treatment">In Treatment</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
-                <option value="Rescheduled">Rescheduled</option>
                 <option value="No Show">No Show</option>
               </select>
             </div>

@@ -178,6 +178,16 @@ export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
               </span>
             </div>
 
+            {/* Sumber Tamu */}
+            <div className="pt-3 flex items-start justify-between gap-4">
+              <span className="font-medium text-xs text-[#647b8e] shrink-0">
+                Sumber Tamu
+              </span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-[#f4fafc] text-[#16567d] border border-[#4eafde]/30 text-right">
+                {reservation.guest_source || 'Tamu reguler'}
+              </span>
+            </div>
+
             {/* Catatan / Note */}
             <div className="pt-3 space-y-2">
               <div className="flex items-center gap-2 text-[#647b8e]">

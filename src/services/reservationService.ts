@@ -1,6 +1,8 @@
 import {
   DashboardStats,
+  GUEST_SOURCES,
   GuestCategory,
+  GuestSource,
   Reservation,
   ReservationStatus,
   ReservationWithTreatment,
@@ -17,6 +19,7 @@ export interface SupabaseReservationRow {
   child_age: string;
   whatsapp: string;
   guest_category: string;
+  guest_source?: string | null;
   reservation_date: string;
   reservation_time: string;
   treatment_id: string;
@@ -85,11 +88,35 @@ const INITIAL_RESERVATIONS: ReservationWithTreatment[] = [];
 const LOCAL_STORE_RESERVATIONS = 'aurora_reservations_v2';
 const LOCAL_STORE_TREATMENTS = 'aurora_treatments_v2';
 const LOCAL_STORE_NOTES = 'aurora_reservation_notes_v1';
+const LOCAL_STORE_GUEST_SOURCES = 'aurora_reservation_guest_sources_v1';
 
 let supabaseNotesSupported: boolean | null = null;
+let supabaseGuestSourceSupported: boolean | null = null;
 
 export function isNotesColumnMissing(): boolean {
   return supabaseNotesSupported === false;
+}
+
+function normalizeGuestSource(val: unknown): GuestSource {
+  if (typeof val === 'string' && (GUEST_SOURCES as readonly string[]).includes(val)) {
+    return val as GuestSource;
+  }
+  return 'Tamu reguler';
+}
+
+function normalizeStatus(val: unknown): ReservationStatus {
+  if (
+    val === 'Pending' ||
+    val === 'Confirmed' ||
+    val === 'Checked-in' ||
+    val === 'In Treatment' ||
+    val === 'Completed' ||
+    val === 'Cancelled' ||
+    val === 'No Show'
+  ) {
+    return val;
+  }
+  return 'Pending';
 }
 
 function getLocalNotesMap(): Record<string, string> {
@@ -117,12 +144,65 @@ function setLocalNote(id: string, note: string): void {
   }
 }
 
+function getLocalGuestSourcesMap(): Record<string, GuestSource> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(LOCAL_STORE_GUEST_SOURCES);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLocalGuestSource(id: string, source: GuestSource): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getLocalGuestSourcesMap();
+    map[id] = source;
+    localStorage.setItem(LOCAL_STORE_GUEST_SOURCES, JSON.stringify(map));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 function isMissingNotesColumnError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
+  const msg = (error.message || '').toLowerCase();
+  return (error.code === '42703' || error.code === 'PGRST204') && msg.includes('notes');
+}
+
+function isMissingGuestSourceColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  const msg = (error.message || '').toLowerCase();
   return (
-    error.code === '42703' ||
-    (error.message || '').toLowerCase().includes('notes')
+    (error.code === '42703' || error.code === 'PGRST204') &&
+    msg.includes('guest_source')
   );
+}
+
+function buildReservationSelect(includeNotes: boolean, includeGuestSource: boolean): string {
+  return `
+    id,
+    reservation_code,
+    mom_name,
+    child_name,
+    child_age,
+    whatsapp,
+    guest_category,
+    ${includeGuestSource ? 'guest_source,' : ''}
+    reservation_date,
+    reservation_time,
+    treatment_id,
+    status,
+    ${includeNotes ? 'notes,' : ''}
+    created_at,
+    updated_at,
+    treatments (
+      id,
+      name,
+      is_active
+    )
+  `;
 }
 
 function getLocalTreatments(): Treatment[] {
@@ -506,73 +586,57 @@ export const reservationService = {
     const client = getSupabaseClient();
 
     if (!client) {
-      return getLocalReservations();
+      return getLocalReservations().map((r) => ({
+        ...r,
+        guest_source: normalizeGuestSource(r.guest_source),
+        status: normalizeStatus(r.status),
+      }));
     }
 
     try {
-      const selectWithNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        notes,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
-      const selectWithoutNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
+      let useNotes = supabaseNotesSupported !== false;
+      let useGuestSource = supabaseGuestSourceSupported !== false;
 
       let queryResult: { data: any[] | null; error: any } = await client
         .from('reservations')
-        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
+        .select(buildReservationSelect(useNotes, useGuestSource))
         .order('created_at', { ascending: false });
 
-      if (queryResult.error && isMissingNotesColumnError(queryResult.error)) {
-        supabaseNotesSupported = false;
+      for (let attempt = 0; attempt < 2 && queryResult.error; attempt++) {
+        let changed = false;
+        if (useNotes && isMissingNotesColumnError(queryResult.error)) {
+          supabaseNotesSupported = false;
+          useNotes = false;
+          changed = true;
+        }
+        if (useGuestSource && isMissingGuestSourceColumnError(queryResult.error)) {
+          supabaseGuestSourceSupported = false;
+          useGuestSource = false;
+          changed = true;
+        }
+        if (!changed) break;
         queryResult = await client
           .from('reservations')
-          .select(selectWithoutNotes)
+          .select(buildReservationSelect(useNotes, useGuestSource))
           .order('created_at', { ascending: false });
-      } else if (!queryResult.error && supabaseNotesSupported !== false) {
-        supabaseNotesSupported = true;
+      }
+
+      if (!queryResult.error) {
+        if (useNotes) supabaseNotesSupported = true;
+        if (useGuestSource) supabaseGuestSourceSupported = true;
       }
 
       if (queryResult.error) {
         console.warn('Supabase getReservations error, using local fallback:', queryResult.error.message);
-        return getLocalReservations();
+        return getLocalReservations().map((r) => ({
+          ...r,
+          guest_source: normalizeGuestSource(r.guest_source),
+          status: normalizeStatus(r.status),
+        }));
       }
 
       const localNotes = getLocalNotesMap();
+      const localSources = getLocalGuestSourcesMap();
       const list: ReservationWithTreatment[] = (queryResult.data || []).map((row: any) => ({
         id: row.id,
         reservation_code: row.reservation_code,
@@ -581,11 +645,14 @@ export const reservationService = {
         child_age: row.child_age,
         whatsapp: row.whatsapp,
         guest_category: row.guest_category as GuestCategory,
+        guest_source: normalizeGuestSource(
+          row.guest_source !== undefined ? row.guest_source : localSources[row.id]
+        ),
         reservation_date: row.reservation_date,
         reservation_time: formatTimeHHmm(row.reservation_time),
         treatment_id: row.treatment_id,
         treatment_name: row.treatments?.name || 'Treatment Dihapus',
-        status: row.status as ReservationStatus,
+        status: normalizeStatus(row.status),
         notes: row.notes !== undefined ? (row.notes ?? '') : (localNotes[row.id] ?? ''),
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -596,7 +663,11 @@ export const reservationService = {
       return list;
     } catch (err) {
       console.warn('Network error in getReservations:', err);
-      return getLocalReservations();
+      return getLocalReservations().map((r) => ({
+        ...r,
+        guest_source: normalizeGuestSource(r.guest_source),
+        status: normalizeStatus(r.status),
+      }));
     }
   },
 
@@ -664,6 +735,7 @@ export const reservationService = {
   ): Promise<ReservationWithTreatment> {
     const code = await this.generateReservationCode(input.reservation_date);
     const client = getSupabaseClient();
+    const cleanSource = normalizeGuestSource(input.guest_source);
 
     if (!client) {
       const local = getLocalReservations();
@@ -672,6 +744,7 @@ export const reservationService = {
 
       const newRes: ReservationWithTreatment = {
         ...input,
+        guest_source: cleanSource,
         notes: input.notes ?? '',
         id: crypto.randomUUID(),
         reservation_code: code,
@@ -685,7 +758,7 @@ export const reservationService = {
     }
 
     try {
-      const basePayload = {
+      const basePayload: Record<string, any> = {
         reservation_code: code,
         mom_name: input.mom_name,
         child_name: input.child_name,
@@ -697,68 +770,45 @@ export const reservationService = {
         treatment_id: input.treatment_id,
         status: input.status,
       };
-      const selectWithNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        notes,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
-      const selectWithoutNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
 
-      const insertPayload: Record<string, any> =
-        supabaseNotesSupported === false
-          ? basePayload
-          : { ...basePayload, notes: input.notes ?? '' };
+      let useNotes = supabaseNotesSupported !== false;
+      let useGuestSource = supabaseGuestSourceSupported !== false;
+
+      const buildPayload = () => ({
+        ...basePayload,
+        ...(useNotes ? { notes: input.notes ?? '' } : {}),
+        ...(useGuestSource ? { guest_source: cleanSource } : {}),
+      });
 
       let res: { data: any; error: any } = await client
         .from('reservations')
-        .insert(insertPayload)
-        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
+        .insert(buildPayload())
+        .select(buildReservationSelect(useNotes, useGuestSource))
         .single();
 
-      if (res.error && isMissingNotesColumnError(res.error)) {
-        supabaseNotesSupported = false;
+      for (let attempt = 0; attempt < 2 && res.error; attempt++) {
+        let changed = false;
+        if (useNotes && isMissingNotesColumnError(res.error)) {
+          supabaseNotesSupported = false;
+          useNotes = false;
+          changed = true;
+        }
+        if (useGuestSource && isMissingGuestSourceColumnError(res.error)) {
+          supabaseGuestSourceSupported = false;
+          useGuestSource = false;
+          changed = true;
+        }
+        if (!changed) break;
         res = await client
           .from('reservations')
-          .insert(basePayload)
-          .select(selectWithoutNotes)
+          .insert(buildPayload())
+          .select(buildReservationSelect(useNotes, useGuestSource))
           .single();
-      } else if (!res.error && supabaseNotesSupported !== false) {
-        supabaseNotesSupported = true;
+      }
+
+      if (!res.error) {
+        if (useNotes) supabaseNotesSupported = true;
+        if (useGuestSource) supabaseGuestSourceSupported = true;
       }
 
       if (res.error || !res.data) {
@@ -771,6 +821,9 @@ export const reservationService = {
       if (supabaseNotesSupported === false && finalNotes) {
         setLocalNote(data.id, finalNotes);
       }
+      if (supabaseGuestSourceSupported === false) {
+        setLocalGuestSource(data.id, cleanSource);
+      }
 
       return {
         id: data.id,
@@ -780,11 +833,14 @@ export const reservationService = {
         child_age: data.child_age,
         whatsapp: data.whatsapp,
         guest_category: data.guest_category as GuestCategory,
+        guest_source: normalizeGuestSource(
+          data.guest_source !== undefined ? data.guest_source : cleanSource
+        ),
         reservation_date: data.reservation_date,
         reservation_time: formatTimeHHmm(data.reservation_time),
         treatment_id: data.treatment_id,
         treatment_name: data.treatments?.name || 'Treatment',
-        status: data.status as ReservationStatus,
+        status: normalizeStatus(data.status),
         notes: data.notes !== undefined ? (data.notes ?? '') : finalNotes,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -815,6 +871,9 @@ export const reservationService = {
       local[idx] = {
         ...local[idx],
         ...updates,
+        guest_source: updates.guest_source
+          ? normalizeGuestSource(updates.guest_source)
+          : normalizeGuestSource(local[idx].guest_source),
         treatment_name: trt?.name || local[idx].treatment_name,
         updated_at: new Date().toISOString(),
       };
@@ -823,77 +882,54 @@ export const reservationService = {
     }
 
     try {
-      const { notes: incomingNotes, ...otherUpdates } = updates;
+      const { notes: incomingNotes, guest_source: incomingGuestSource, ...otherUpdates } = updates;
       const hasNotesUpdate = incomingNotes !== undefined;
+      const hasGuestSourceUpdate = incomingGuestSource !== undefined;
+      const cleanSource = hasGuestSourceUpdate
+        ? normalizeGuestSource(incomingGuestSource)
+        : undefined;
 
-      const selectWithNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        notes,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
-      const selectWithoutNotes = `
-        id,
-        reservation_code,
-        mom_name,
-        child_name,
-        child_age,
-        whatsapp,
-        guest_category,
-        reservation_date,
-        reservation_time,
-        treatment_id,
-        status,
-        created_at,
-        updated_at,
-        treatments (
-          id,
-          name,
-          is_active
-        )
-      `;
+      let useNotes = supabaseNotesSupported !== false;
+      let useGuestSource = supabaseGuestSourceSupported !== false;
 
-      const payloadWithNotes: Record<string, any> = {
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      const payloadWithoutNotes: Record<string, any> = {
+      const buildUpdatePayload = (): Record<string, any> => ({
         ...otherUpdates,
+        ...(useNotes && hasNotesUpdate ? { notes: incomingNotes } : {}),
+        ...(useGuestSource && hasGuestSourceUpdate ? { guest_source: cleanSource } : {}),
         updated_at: new Date().toISOString(),
-      };
+      });
 
       let res: { data: any; error: any } = await client
         .from('reservations')
-        .update(supabaseNotesSupported === false ? payloadWithoutNotes : payloadWithNotes)
+        .update(buildUpdatePayload())
         .eq('id', id)
-        .select(supabaseNotesSupported === false ? selectWithoutNotes : selectWithNotes)
+        .select(buildReservationSelect(useNotes, useGuestSource))
         .single();
 
-      if (res.error && isMissingNotesColumnError(res.error)) {
-        supabaseNotesSupported = false;
+      for (let attempt = 0; attempt < 2 && res.error; attempt++) {
+        let changed = false;
+        if (useNotes && isMissingNotesColumnError(res.error)) {
+          supabaseNotesSupported = false;
+          useNotes = false;
+          changed = true;
+        }
+        if (useGuestSource && isMissingGuestSourceColumnError(res.error)) {
+          supabaseGuestSourceSupported = false;
+          useGuestSource = false;
+          changed = true;
+        }
+        if (!changed) break;
         res = await client
           .from('reservations')
-          .update(payloadWithoutNotes)
+          .update(buildUpdatePayload())
           .eq('id', id)
-          .select(selectWithoutNotes)
+          .select(buildReservationSelect(useNotes, useGuestSource))
           .single();
-      } else if (!res.error && supabaseNotesSupported !== false) {
-        supabaseNotesSupported = true;
+      }
+
+      if (!res.error) {
+        if (useNotes) supabaseNotesSupported = true;
+        if (useGuestSource) supabaseGuestSourceSupported = true;
       }
 
       if (res.error || !res.data) {
@@ -904,7 +940,11 @@ export const reservationService = {
       if (supabaseNotesSupported === false && hasNotesUpdate) {
         setLocalNote(id, incomingNotes ?? '');
       }
+      if (supabaseGuestSourceSupported === false && cleanSource) {
+        setLocalGuestSource(id, cleanSource);
+      }
       const localNotes = getLocalNotesMap();
+      const localSources = getLocalGuestSourcesMap();
 
       return {
         id: data.id,
@@ -914,11 +954,16 @@ export const reservationService = {
         child_age: data.child_age,
         whatsapp: data.whatsapp,
         guest_category: data.guest_category as GuestCategory,
+        guest_source: normalizeGuestSource(
+          data.guest_source !== undefined
+            ? data.guest_source
+            : cleanSource ?? localSources[id]
+        ),
         reservation_date: data.reservation_date,
         reservation_time: formatTimeHHmm(data.reservation_time),
         treatment_id: data.treatment_id,
         treatment_name: data.treatments?.name || 'Treatment',
-        status: data.status as ReservationStatus,
+        status: normalizeStatus(data.status),
         notes:
           data.notes !== undefined
             ? (data.notes ?? '')

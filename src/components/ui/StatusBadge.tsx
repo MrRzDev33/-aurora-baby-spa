@@ -28,9 +28,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
     case 'Pending':
       colorClasses = 'bg-[#fffbeb] text-[#b45309] border-[#fde68a]';
       break;
-    case 'Rescheduled':
-      colorClasses = 'bg-[#f8fafc] text-[#475569] border-[#cbd5e1]';
-      break;
     case 'Cancelled':
       colorClasses = 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]';
       break;
